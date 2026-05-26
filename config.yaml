@@ -1,0 +1,85 @@
+project:
+  name: "Pavement AI System"
+  version: "2.0"
+  institution: "IIT Tirupati - CEE"
+  project: "BTP Phase II - NH-71 GEOTRAN"
+
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  data_events: "data/events"
+  models: "src/models/trained"
+  logs: "logs"
+
+daq:
+  sampling_rate: 500         # Hz
+  timestep: 0.002            # seconds
+  samples_per_file: 500000
+
+channels:
+  file_ver:
+    vertical_strain: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]   # CH0-CH12 (µε)
+    horizontal_strain: [13, 14, 15]                                  # CH13-CH15 (µε)
+  file_hor:
+    horizontal_strain: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]              # CH0-CH9 (µε)
+    temperature: [10, 11]                                            # CH10-CH11 (°C)
+    epc: [12, 13]                                                    # CH12-CH13 (MPa)
+
+filtering:
+  bandpass_low: 0.5        # Hz — corrected from 0.1 Hz
+  bandpass_high: 30.0      # Hz — captures axle events at highway speed
+  bandpass_order: 4
+  drift_cutoff: 0.01       # Hz — for drift/DC removal
+  temp_cutoff: 0.001       # Hz — for temperature channels
+
+event_detection:
+  threshold_factor: 2.0          # × RMS of baseline noise
+  min_peak_distance_samples: 25  # 50 ms at 500 Hz
+  min_prominence_microstrain: 5  # µε
+  axle_grouping_window: 0.5      # seconds
+  vehicle_grouping_window: 3.0   # seconds
+  min_axles: 1
+  max_axles: 8
+
+sensor_health:
+  dead_gauge_std_threshold: 1.0      # µε — below = likely dead
+  saturated_offset_threshold: 500.0  # µε — above = saturated/damaged
+  health_score_window: 60.0          # seconds
+  exclude_threshold: 0.3             # health score below → exclude from Nf/Nr
+
+synchronization:
+  search_window: 2.0       # seconds
+  dtw_threshold: 0.5       # DTW similarity threshold
+  dbscan_eps: 2.0          # seconds (temporal clustering radius)
+  dbscan_min_samples: 2
+
+mechanistic:
+  # IRC:37-2018 fatigue (B-80 bituminous mix)
+  K1: 0.005837
+  K2: 3.89
+  K3: 0.854
+  # Shell rutting model
+  K4: 6.15e-7
+  K5: 4.0
+  # Design traffic defaults
+  default_growth_rate: 0.05       # 5% annual
+  default_design_period: 20       # years
+  default_lane_distribution: 0.75
+  default_vdf: 4.5
+
+ml:
+  xgboost_n_estimators: 200
+  xgboost_max_depth: 6
+  lstm_hidden: 128
+  lstm_dropout: 0.2
+  lstm_sequence_length: 50
+  autoencoder_latent: 16
+  mc_dropout_passes: 100
+  cv_folds: 5
+
+vehicle_classes:
+  2: "2-Axle"
+  3: "3-Axle"
+  4: "4-Axle"
+  5: "5-Axle (3S2)"
+  6: "6-Axle"
