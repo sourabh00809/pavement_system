@@ -2,14 +2,14 @@
 from __future__ import annotations
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
 
 class LayerInput(BaseModel):
     Layer: str
-    "Thickness (mm)": float = 0.0
+    Thickness_mm: float = Field(default=0.0, alias="Thickness (mm)")
 
 
 class LifePredictionInput(BaseModel):
@@ -34,7 +34,7 @@ async def predict_life(req: LifePredictionInput):
         )
         layers_dict = None
         if req.layers:
-            layers_dict = [l.model_dump() for l in req.layers]
+            layers_dict = [{"Layer": l.Layer, "Thickness (mm)": l.Thickness_mm} for l in req.layers]
 
         result = compute_pavement_life(
             req.epsilon_t, req.epsilon_v, req.E_MPa,
