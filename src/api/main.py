@@ -27,6 +27,8 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://pavement-ai.vercel.app",
+    # Add your actual Vercel URL here after deploy, e.g.:
+    # "https://pavement-system-sourabh.vercel.app",
 ]
 
 app.add_middleware(
