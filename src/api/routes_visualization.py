@@ -1,14 +1,14 @@
-"""Data visualization endpoints — returns plot images and data."""
+"""Data visualization endpoints — with in-memory caching to avoid re-running full pipeline on every request."""
 from __future__ import annotations
 import io
 import base64
+import functools
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from fastapi import APIRouter, Query
-from typing import Optional
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -20,6 +20,8 @@ plt.rcParams.update({
     "grid.alpha": 0.3,
 })
 
+_cache: dict = {}
+
 
 def _fig_to_b64(fig) -> str:
     buf = io.BytesIO()
@@ -28,29 +30,50 @@ def _fig_to_b64(fig) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def _get_pipeline_result():
+    if "pipeline" not in _cache:
+        from run_pipeline import run_pipeline
+        _cache["pipeline"] = run_pipeline(demo=True)
+    return _cache["pipeline"]
+
+
+def _get_demo_data():
+    if "demo_data" not in _cache:
+        from run_pipeline import generate_demo_data
+        from src.preprocessing.preprocessing import preprocess_dataframe
+        df_ver, df_hor = generate_demo_data()
+        gauge_types = {}
+        for c in df_ver.columns:
+            gauge_types[c] = "vertical_strain" if int(c[2:]) <= 12 else "horizontal_strain"
+        for c in df_hor.columns:
+            key = f"{c}_hor"
+            idx = int(c[2:])
+            gauge_types[key] = "horizontal_strain" if idx <= 9 else ("temperature" if idx <= 11 else "epc")
+        df_combined = pd.concat([df_ver, df_hor.rename(columns={c: f"{c}_hor" for c in df_hor.columns})], axis=1)
+        strain_cols = [c for c, t in gauge_types.items() if t in ("vertical_strain", "horizontal_strain") and c in df_combined.columns]
+        df_filtered = preprocess_dataframe(df_combined[strain_cols], gauge_types)
+        _cache["demo_data"] = {
+            "df_combined": df_combined,
+            "df_filtered": df_filtered,
+            "gauge_types": gauge_types,
+            "strain_cols": strain_cols,
+        }
+    return _cache["demo_data"]
+
+
 @router.get("/viz/signals")
-async def get_signals(gauge: str = "CH0", demo: bool = True):
-    from run_pipeline import generate_demo_data
-    from src.preprocessing.preprocessing import preprocess_dataframe
-
-    df_ver, df_hor = generate_demo_data()
-    gauge_types = {}
-    for c in df_ver.columns:
-        gauge_types[c] = "vertical_strain" if int(c[2:]) <= 12 else "horizontal_strain"
-    for c in df_hor.columns:
-        key = f"{c}_hor"
-        idx = int(c[2:])
-        gauge_types[key] = "horizontal_strain" if idx <= 9 else ("temperature" if idx <= 11 else "epc")
-
-    df_combined = pd.concat([df_ver, df_hor.rename(columns={c: f"{c}_hor" for c in df_hor.columns})], axis=1)
-    strain_cols = [c for c, t in gauge_types.items() if t in ("vertical_strain", "horizontal_strain") and c in df_combined.columns]
+async def get_signals(gauge: str = "CH0"):
+    dd = _get_demo_data()
+    df_combined = dd["df_combined"]
+    df_filtered = dd["df_filtered"]
+    strain_cols = dd["strain_cols"]
 
     if gauge not in df_combined.columns:
         gauge = strain_cols[0] if strain_cols else df_combined.columns[0]
 
     raw = df_combined[gauge].values[:5000]
     times = df_combined.index[:5000]
-    processed = preprocess_dataframe(df_combined[strain_cols], gauge_types)[gauge].values[:5000]
+    processed = df_filtered[gauge].values[:5000] if gauge in df_filtered.columns else raw
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
     ax1.plot(times, raw, color="#4a90d9", linewidth=0.5)
@@ -72,23 +95,13 @@ async def get_signals(gauge: str = "CH0", demo: bool = True):
 
 
 @router.get("/viz/health")
-async def get_health(demo: bool = True):
-    from run_pipeline import generate_demo_data
-    from src.preprocessing.preprocessing import preprocess_dataframe
+async def get_health():
     from src.sensor_health.sensor_health import assess_all_gauges
 
-    df_ver, df_hor = generate_demo_data()
-    gauge_types = {}
-    for c in df_ver.columns:
-        gauge_types[c] = "vertical_strain" if int(c[2:]) <= 12 else "horizontal_strain"
-    for c in df_hor.columns:
-        key = f"{c}_hor"
-        gauge_types[key] = "horizontal_strain" if int(c[2:]) <= 9 else ("temperature" if int(c[2:]) <= 11 else "epc")
-    df_combined = pd.concat([df_ver, df_hor.rename(columns={c: f"{c}_hor" for c in df_hor.columns})], axis=1)
-    strain_cols = [c for c, t in gauge_types.items() if t in ("vertical_strain", "horizontal_strain") and c in df_combined.columns]
-    df_filtered = preprocess_dataframe(df_combined[strain_cols], gauge_types)
-    health_map = assess_all_gauges(df_filtered)
+    dd = _get_demo_data()
+    df_filtered = dd["df_filtered"]
 
+    health_map = assess_all_gauges(df_filtered)
     gauges_data = [gh.to_dict() for gh in health_map.values()]
 
     names = [g["gauge"] for g in gauges_data]
@@ -111,12 +124,9 @@ async def get_health(demo: bool = True):
 
 
 @router.get("/viz/events")
-async def get_events(demo: bool = True):
-    from run_pipeline import generate_demo_data, run_pipeline
-
-    result = run_pipeline(demo=demo)
+async def get_events():
+    result = _get_pipeline_result()
     event_df = result["event_df"]
-    health_map = result["health_map"]
 
     events_summary = []
     if not event_df.empty:
@@ -157,10 +167,8 @@ async def get_events(demo: bool = True):
 
 
 @router.get("/viz/sync")
-async def get_sync_matrix(demo: bool = True):
-    from run_pipeline import generate_demo_data, run_pipeline
-
-    result = run_pipeline(demo=demo)
+async def get_sync_matrix():
+    result = _get_pipeline_result()
     bundles = result["synced_bundles"]
     health_map = result["health_map"]
     gauges = list(health_map.keys())
@@ -197,10 +205,8 @@ async def get_sync_matrix(demo: bool = True):
 
 
 @router.get("/viz/life")
-async def get_life_plot(demo: bool = True):
-    from run_pipeline import run_pipeline
-
-    result = run_pipeline(demo=demo)
+async def get_life_plot():
+    result = _get_pipeline_result()
     life = result["life_result"]
     uncertainty = result["uncertainty"]
 
@@ -233,3 +239,9 @@ async def get_life_plot(demo: bool = True):
         "uncertainty": uncertainty,
         "plot": _fig_to_b64(fig),
     }
+
+
+@router.post("/refresh")
+async def refresh_cache():
+    _cache.clear()
+    return {"status": "cache cleared"}

@@ -73,14 +73,15 @@ export default function ExportPage() {
         <h3 className="card-title text-sm text-primary">Pipeline Status</h3>
         <button onClick={async () => {
           try {
-            const { pipelineApi } = await import('../api/client')
+            const { pipelineApi, vizApi } = await import('../api/client')
             const res = await pipelineApi.run(true)
-            alert(`Pipeline complete!\nNf: ${res.life_result?.Nf}\nNr: ${res.life_result?.Nr}\nEvents: ${res.n_events}`)
+            await vizApi.refresh()
+            alert(`Pipeline refreshed!\nNf: ${res.life_result?.Nf}\nNr: ${res.life_result?.Nr}\nEvents: ${res.n_events}`)
           } catch (e: any) {
             alert(`Pipeline error: ${e.message}`)
           }
         }} className="btn-primary text-sm" disabled={downloading === 'pipeline'}>
-          Run Full Pipeline (Demo Data)
+          Refresh Pipeline Data
         </button>
       </div>
     </div>

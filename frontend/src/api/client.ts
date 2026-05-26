@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 60000,
+  timeout: 30000,
 })
 
 export default api
@@ -13,11 +13,12 @@ export const pipelineApi = {
 }
 
 export const vizApi = {
-  signals: (gauge = 'CH0') => api.get('/viz/signals', { params: { gauge, demo: true } }).then(r => r.data),
-  health: () => api.get('/viz/health', { params: { demo: true } }).then(r => r.data),
-  events: () => api.get('/viz/events', { params: { demo: true } }).then(r => r.data),
-  sync: () => api.get('/viz/sync', { params: { demo: true } }).then(r => r.data),
-  life: () => api.get('/viz/life', { params: { demo: true } }).then(r => r.data),
+  signals: (gauge = 'CH0') => api.get('/viz/signals', { params: { gauge } }).then(r => r.data),
+  health: () => api.get('/viz/health').then(r => r.data),
+  events: () => api.get('/viz/events').then(r => r.data),
+  sync: () => api.get('/viz/sync').then(r => r.data),
+  life: () => api.get('/viz/life').then(r => r.data),
+  refresh: () => api.post('/refresh').then(r => r.data),
 }
 
 export const exportApi = {
