@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.git
+.gitignore
+.env
+.env.example
+README.md
+__pycache__/
+node_modules/
+data/
+logs/
+src/models/trained/
+pytest-cache-files-*/
+**/*.pyc
+**/__pycache__/

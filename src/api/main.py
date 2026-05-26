@@ -29,6 +29,8 @@ ALLOWED_ORIGINS = [
     "https://pavement-ai.vercel.app",
     # Add your actual Vercel URL here after deploy, e.g.:
     # "https://pavement-system-sourabh.vercel.app",
+    # For HF Spaces deployment:
+    "https://sourabh00809-pavement-system.hf.space",
 ]
 
 app.add_middleware(
