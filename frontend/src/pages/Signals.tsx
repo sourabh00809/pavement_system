@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PlotImage from '../components/PlotImage'
+import InteractivePlot from '../components/InteractivePlot'
 import { vizApi } from '../api/client'
 
 export default function Signals() {
@@ -32,7 +32,7 @@ export default function Signals() {
         <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
       ) : data ? (
         <div className="space-y-4">
-          <PlotImage src={data.plot} alt={`Signal ${gauge}`} />
+          <InteractivePlot plotJson={data.plot_json} />
           <div className="card">
             <h3 className="card-title">Signal Statistics</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

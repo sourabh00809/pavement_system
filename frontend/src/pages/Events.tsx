@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PlotImage from '../components/PlotImage'
+import InteractivePlot from '../components/InteractivePlot'
 import MetricCard from '../components/MetricCard'
 import { vizApi } from '../api/client'
 
@@ -30,7 +30,10 @@ export default function Events() {
         <MetricCard title="Most Common" value={mostCommon ? `${mostCommon[0]}-axle` : '—'} color="accent" icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </div>
 
-      {data?.plot && <PlotImage src={data.plot} alt="Event distribution" />}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {data?.plot_json && <InteractivePlot plotJson={data.plot_json} />}
+        {data?.plot_json2 && <InteractivePlot plotJson={data.plot_json2} />}
+      </div>
 
       <div className="card">
         <h3 className="card-title">Detected Events</h3>

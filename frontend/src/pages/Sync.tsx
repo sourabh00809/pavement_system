@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PlotImage from '../components/PlotImage'
+import InteractivePlot from '../components/InteractivePlot'
 import MetricCard from '../components/MetricCard'
 import { vizApi } from '../api/client'
 
@@ -26,7 +26,7 @@ export default function Sync() {
         <MetricCard title="Avg Confidence" value={data?.bundles?.length ? (data.bundles.reduce((a: number, b: any) => a + b.confidence, 0) / data.bundles.length).toFixed(3) : '—'} color="accent" icon="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
       </div>
 
-      {data?.plot && <PlotImage src={data.plot} alt="Sync matrix" />}
+      {data?.plot_json && <InteractivePlot plotJson={data.plot_json} />}
 
       <div className="card">
         <h3 className="card-title">Synchronized Event Bundles</h3>

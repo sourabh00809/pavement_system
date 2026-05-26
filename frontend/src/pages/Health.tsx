@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PlotImage from '../components/PlotImage'
+import InteractivePlot from '../components/InteractivePlot'
 import { vizApi } from '../api/client'
 
 export default function Health() {
@@ -19,7 +19,7 @@ export default function Health() {
         <p className="text-gray-500 text-sm mt-1">Dead/saturated gauge detection · Autoencoder anomaly detector</p>
       </div>
 
-      {data?.plot && <PlotImage src={data.plot} alt="Gauge health" />}
+      {data?.plot_json && <InteractivePlot plotJson={data.plot_json} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data?.gauges?.map((g: any) => (

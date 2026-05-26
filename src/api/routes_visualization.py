@@ -1,33 +1,41 @@
-"""Data visualization endpoints — with in-memory caching to avoid re-running full pipeline on every request."""
+"""Data visualization endpoints — returns Plotly interactive JSON instead of static images."""
 from __future__ import annotations
-import io
-import base64
-import functools
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 from fastapi import APIRouter
 
 router = APIRouter()
 
-plt.rcParams.update({
-    "figure.facecolor": "#f5f7fa",
-    "axes.facecolor": "#ffffff",
-    "axes.edgecolor": "#e0e0e0",
-    "axes.grid": True,
-    "grid.alpha": 0.3,
-})
-
 _cache: dict = {}
 
+# Professional theme colors
+THEME = {
+    "primary": "#1e3a5f",
+    "secondary": "#4a90d9",
+    "accent": "#e8a838",
+    "success": "#2ecc71",
+    "danger": "#e74c3c",
+    "warning": "#f39c12",
+    "bg": "#f5f7fa",
+    "card": "#ffffff",
+    "text": "#333333",
+}
 
-def _fig_to_b64(fig) -> str:
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode()
+
+def _layout(title: str, xlabel: str = "", ylabel: str = "", **kwargs) -> dict:
+    return dict(
+        title=dict(text=title, font=dict(size=16, color=THEME["primary"])),
+        xaxis=dict(title=xlabel, gridcolor="#eee", zerolinecolor="#ddd"),
+        yaxis=dict(title=ylabel, gridcolor="#eee", zerolinecolor="#ddd"),
+        plot_bgcolor=THEME["card"],
+        paper_bgcolor=THEME["bg"],
+        font=dict(family="Inter, sans-serif", color=THEME["text"]),
+        margin=dict(l=50, r=20, t=50, b=40),
+        hovermode="closest",
+        **kwargs,
+    )
 
 
 def _get_pipeline_result():
@@ -71,26 +79,29 @@ async def get_signals(gauge: str = "CH0"):
     if gauge not in df_combined.columns:
         gauge = strain_cols[0] if strain_cols else df_combined.columns[0]
 
-    raw = df_combined[gauge].values[:5000]
     times = df_combined.index[:5000]
+    raw = df_combined[gauge].values[:5000]
     processed = df_filtered[gauge].values[:5000] if gauge in df_filtered.columns else raw
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
-    ax1.plot(times, raw, color="#4a90d9", linewidth=0.5)
-    ax1.set_title(f"{gauge} — Raw Signal", fontweight="bold")
-    ax1.set_ylabel("Strain (µε)")
-    ax2.plot(times, processed, color="#1e3a5f", linewidth=0.5)
-    ax2.set_title(f"{gauge} — Filtered (0.5–30 Hz bandpass)", fontweight="bold")
-    ax2.set_xlabel("Time (s)")
-    ax2.set_ylabel("Strain (µε)")
-    fig.tight_layout()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=times, y=raw, mode="lines",
+        name="Raw", line=dict(color=THEME["secondary"], width=1),
+        hovertemplate="Time: %{x:.3f}s<br>Raw: %{y:.1f} µε<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=times, y=processed, mode="lines",
+        name="Filtered (0.5–30 Hz)", line=dict(color=THEME["primary"], width=1.5),
+        hovertemplate="Time: %{x:.3f}s<br>Filtered: %{y:.1f} µε<extra></extra>",
+    ))
+    fig.update_layout(**_layout(f"{gauge} — Raw vs Filtered", "Time (s)", "Strain (µε)"))
 
     return {
         "gauge": gauge,
         "times": times.tolist(),
         "raw": raw.tolist(),
         "filtered": processed.tolist(),
-        "plot": _fig_to_b64(fig),
+        "plot_json": fig.to_json(),
     }
 
 
@@ -100,7 +111,6 @@ async def get_health():
 
     dd = _get_demo_data()
     df_filtered = dd["df_filtered"]
-
     health_map = assess_all_gauges(df_filtered)
     gauges_data = [gh.to_dict() for gh in health_map.values()]
 
@@ -108,19 +118,19 @@ async def get_health():
     scores = [g["health_score"] for g in gauges_data]
     colors = ["#2ecc71" if s > 0.7 else ("#f39c12" if s > 0.3 else "#e74c3c") for s in scores]
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    bars = ax.bar(names, scores, color=colors, edgecolor="white", linewidth=0.5)
-    ax.axhline(y=0.3, color="#e74c3c", linestyle="--", alpha=0.6, label="Exclusion threshold")
-    ax.set_ylim(0, 1.1)
-    ax.set_title("Gauge Health Scores", fontweight="bold")
-    ax.set_ylabel("Health Score")
-    ax.legend()
-    for bar, s in zip(bars, scores):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
-                f"{s:.2f}", ha="center", va="bottom", fontsize=7)
-    fig.tight_layout()
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=names, y=scores,
+        marker_color=colors,
+        text=[f"{s:.2f}" for s in scores],
+        textposition="outside",
+        hovertemplate="Gauge: %{x}<br>Score: %{y:.3f}<extra></extra>",
+    ))
+    fig.add_hline(y=0.3, line_dash="dash", line_color=THEME["danger"],
+                  annotation_text="Exclusion threshold", annotation_position="bottom right")
+    fig.update_layout(**_layout("Gauge Health Scores", yaxis=dict(range=[0, 1.1], title="Health Score")))
 
-    return {"gauges": gauges_data, "plot": _fig_to_b64(fig)}
+    return {"gauges": gauges_data, "plot_json": fig.to_json()}
 
 
 @router.get("/viz/events")
@@ -144,25 +154,33 @@ async def get_events():
         axle_dist = event_df["axle_count"].value_counts().sort_index().to_dict()
         axle_dist = {str(k): int(v) for k, v in axle_dist.items()}
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    fig = go.Figure()
     if events_summary:
         strains = [e["max_strain"] for e in events_summary]
-        ax1.hist(strains, bins=20, color="#4a90d9", edgecolor="white")
-        ax1.set_title("Peak Strain Distribution", fontweight="bold")
-        ax1.set_xlabel("Max Strain (µε)")
-        ax1.set_ylabel("Count")
+        fig.add_trace(go.Histogram(
+            x=strains, nbinsx=20,
+            marker_color=THEME["secondary"],
+            hovertemplate="Strain: %{x:.1f} µε<br>Count: %{y}<extra></extra>",
+            name="Peak Strain",
+        ))
+    fig.update_layout(**_layout("Peak Strain Distribution", "Max Strain (µε)", "Count"))
+
+    fig2 = go.Figure()
     if axle_dist:
-        ax2.bar(list(axle_dist.keys()), list(axle_dist.values()), color="#1e3a5f", edgecolor="white")
-        ax2.set_title("Vehicles by Axle Count", fontweight="bold")
-        ax2.set_xlabel("Axles")
-        ax2.set_ylabel("Count")
-    fig.tight_layout()
+        fig2.add_trace(go.Bar(
+            x=list(axle_dist.keys()), y=list(axle_dist.values()),
+            marker_color=THEME["primary"],
+            text=list(axle_dist.values()), textposition="outside",
+            hovertemplate="%{x}-axle: %{y} vehicles<extra></extra>",
+        ))
+    fig2.update_layout(**_layout("Vehicles by Axle Count", "Axles", "Count"))
 
     return {
         "events": events_summary,
         "axle_distribution": axle_dist,
         "n_total": len(events_summary),
-        "plot": _fig_to_b64(fig),
+        "plot_json": fig.to_json(),
+        "plot_json2": fig2.to_json(),
     }
 
 
@@ -183,15 +201,14 @@ async def get_sync_matrix():
                     shared += 1
             matrix[i][j] = shared
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    im = ax.imshow(matrix, cmap="Blues", aspect="auto")
-    ax.set_xticks(range(len(gauges)))
-    ax.set_yticks(range(len(gauges)))
-    ax.set_xticklabels(gauges, rotation=45, ha="right", fontsize=7)
-    ax.set_yticklabels(gauges, fontsize=7)
-    ax.set_title("Cross-Gauge Event Matches", fontweight="bold")
-    plt.colorbar(im, ax=ax, label="Shared events")
-    fig.tight_layout()
+    fig = go.Figure(data=go.Heatmap(
+        z=matrix, x=gauges, y=gauges,
+        colorscale="Blues",
+        hovertemplate="G1: %{x}<br>G2: %{y}<br>Shared: %{z}<extra></extra>",
+    ))
+    fig.update_layout(**_layout("Cross-Gauge Event Matches"))
+    fig.update_xaxes(tickangle=45, tickfont=dict(size=9))
+    fig.update_yaxes(tickfont=dict(size=9))
 
     bundles_summary = [b.to_dict() for b in bundles[:20]]
 
@@ -200,7 +217,7 @@ async def get_sync_matrix():
         "n_bundles": len(bundles),
         "matrix": matrix.tolist(),
         "gauges": gauges,
-        "plot": _fig_to_b64(fig),
+        "plot_json": fig.to_json(),
     }
 
 
@@ -210,34 +227,40 @@ async def get_life_plot():
     life = result["life_result"]
     uncertainty = result["uncertainty"]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-
-    labels = ["Nf\n(Fatigue)", "Nr\n(Rutting)", "Nd\n(Design)"]
+    fig = go.Figure()
+    labels = ["Fatigue (Nf)", "Rutting (Nr)", "Design (Nd)"]
     values = [life.Nf, life.Nr, life.Nd]
-    bars = ax1.bar(labels, [np.log10(max(v, 1)) for v in values],
-                   color=["#4a90d9", "#e8a838", "#1e3a5f"], edgecolor="white")
-    for bar, v in zip(bars, values):
-        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
-                 f"{v:.1e}", ha="center", va="bottom", fontsize=9)
-    ax1.set_title("Pavement Life (log scale)", fontweight="bold")
-    ax1.set_ylabel("log₁₀(Repetitions)")
+    log_vals = [np.log10(max(v, 1)) for v in values]
 
-    util_labels = ["Fatigue\n(Nd/Nf)", "Rutting\n(Nd/Nr)"]
-    util_values = [life.fatigue_utilization, life.rutting_utilization]
-    util_colors = ["#e74c3c" if v > 1 else "#2ecc71" for v in util_values]
-    ax2.bar(util_labels, util_values, color=util_colors, edgecolor="white", width=0.5)
-    ax2.axhline(y=1.0, color="#e74c3c", linestyle="--", alpha=0.7, label="Failure threshold")
-    ax2.set_title("Utilization Ratios", fontweight="bold")
-    ax2.set_ylabel("Nd / N (≤1 = adequate)")
-    for i, v in enumerate(util_values):
-        ax2.text(i, v + 0.02, f"{v:.4f}", ha="center", va="bottom", fontsize=9)
-    ax2.legend(fontsize=8)
-    fig.tight_layout()
+    fig.add_trace(go.Bar(
+        x=labels, y=log_vals,
+        marker_color=[THEME["secondary"], THEME["accent"], THEME["primary"]],
+        text=[f"{v:.2e}" for v in values],
+        textposition="outside",
+        hovertemplate="%{x}<br>log₁₀ = %{y:.2f}<br>Value = %{text}<extra></extra>",
+    ))
+    fig.update_layout(**_layout("Pavement Life (log scale)", yaxis=dict(title="log₁₀(Repetitions)")))
+
+    fig2 = go.Figure()
+    util_labels = ["Fatigue (Nd/Nf)", "Rutting (Nd/Nr)"]
+    util_vals = [life.fatigue_utilization, life.rutting_utilization]
+    util_colors = [THEME["danger"] if v > 1 else THEME["success"] for v in util_vals]
+    fig2.add_trace(go.Bar(
+        x=util_labels, y=util_vals,
+        marker_color=util_colors,
+        text=[f"{v:.4f}" for v in util_vals],
+        textposition="outside",
+        hovertemplate="%{x}<br>Ratio: %{y:.4f}<extra></extra>",
+    ))
+    fig2.add_hline(y=1.0, line_dash="dash", line_color=THEME["danger"],
+                   annotation_text="Failure threshold")
+    fig2.update_layout(**_layout("Utilization Ratios", yaxis=dict(title="Nd / N (≤1 = adequate)")))
 
     return {
         "life": life.to_dict(),
         "uncertainty": uncertainty,
-        "plot": _fig_to_b64(fig),
+        "plot_json": fig.to_json(),
+        "plot_json2": fig2.to_json(),
     }
 
 

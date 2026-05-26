@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import MetricCard from '../components/MetricCard'
-import PlotImage from '../components/PlotImage'
+import InteractivePlot from '../components/InteractivePlot'
 import { vizApi } from '../api/client'
 
 export default function Dashboard() {
@@ -32,14 +32,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="card-title">Pavement Life Prediction</h3>
-          <PlotImage src={life?.plot} alt="Life prediction" />
-        </div>
-        <div className="card">
-          <h3 className="card-title">Gauge Health Overview</h3>
-          <PlotImage src={health?.plot} alt="Gauge health" />
-        </div>
+        <InteractivePlot plotJson={life?.plot_json} title="Pavement Life Prediction" />
+        <InteractivePlot plotJson={health?.plot_json} title="Gauge Health Overview" />
       </div>
 
       <div className="card">
