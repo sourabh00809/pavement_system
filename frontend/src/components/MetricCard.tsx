@@ -2,12 +2,12 @@ export default function MetricCard({ title, value, subtitle, color = 'primary', 
   title: string
   value: string | number
   subtitle?: string
-  color?: 'primary' | 'secondary' | 'accent' | 'success' | 'danger'
+  color?: 'primary' | 'secondary' | 'accent' | 'success' | 'danger' | 'warning'
   icon?: string
   trend?: { up: boolean; text: string }
 }) {
-  const colorMap = { primary: 'text-primary', secondary: 'text-secondary', accent: 'text-accent', success: 'text-success', danger: 'text-danger' }
-  const bgMap = { primary: 'bg-blue-50', secondary: 'bg-blue-50', accent: 'bg-yellow-50', success: 'bg-green-50', danger: 'bg-red-50' }
+  const colorMap = { primary: 'text-primary', secondary: 'text-secondary', accent: 'text-accent', success: 'text-success', danger: 'text-danger', warning: 'text-warning' }
+  const bgMap = { primary: 'bg-blue-50', secondary: 'bg-blue-50', accent: 'bg-yellow-50', success: 'bg-green-50', danger: 'bg-red-50', warning: 'bg-yellow-50' }
 
   return (
     <div className="card flex items-start gap-4">
