@@ -18,6 +18,8 @@ export const vizApi = {
   events: () => api.get('/viz/events').then(r => r.data),
   sync: () => api.get('/viz/sync').then(r => r.data),
   life: () => api.get('/viz/life').then(r => r.data),
+  strains: () => api.get('/viz/strains').then(r => r.data),
+  temperature: (offset10 = 0, offset11 = 0) => api.get('/viz/temperature', { params: { offset_ch10: offset10, offset_ch11: offset11 } }).then(r => r.data),
   refresh: () => api.post('/refresh').then(r => r.data),
 }
 

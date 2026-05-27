@@ -7,6 +7,9 @@ import Signals from './pages/Signals'
 import Health from './pages/Health'
 import Events from './pages/Events'
 import Sync from './pages/Sync'
+import StrainViewer from './pages/StrainViewer'
+import Temperature from './pages/Temperature'
+import PavementDesign from './pages/PavementDesign'
 import Prediction from './pages/Prediction'
 import Export from './pages/Export'
 import Docs from './pages/Docs'
@@ -43,6 +46,9 @@ function App() {
             <Route path="/health" element={<Health />} />
             <Route path="/events" element={<Events />} />
             <Route path="/sync" element={<Sync />} />
+            <Route path="/strains" element={<StrainViewer />} />
+            <Route path="/temperature" element={<Temperature />} />
+            <Route path="/design" element={<PavementDesign />} />
             <Route path="/prediction" element={<Prediction />} />
             <Route path="/export" element={<Export />} />
             <Route path="/docs" element={<Docs />} />

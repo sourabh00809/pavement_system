@@ -264,6 +264,140 @@ async def get_life_plot():
     }
 
 
+@router.get("/viz/strains")
+async def get_strains():
+    result = _get_pipeline_result()
+    dd = _get_demo_data()
+    df_filtered = dd["df_filtered"]
+    gauge_types = dd["gauge_types"]
+    health_map = result["health_map"]
+    eps_t = result["rep_eps_t"]
+    eps_v = result["rep_eps_v"]
+
+    per_gauge = []
+    for gauge in df_filtered.columns:
+        gh = health_map.get(gauge)
+        if gh is None:
+            continue
+        series = df_filtered[gauge].dropna()
+        peak_strain = float(series.abs().max()) if len(series) > 0 else 0
+        gtype = gauge_types.get(gauge, "unknown")
+        per_gauge.append({
+            "gauge": gauge,
+            "type": gtype,
+            "peak_strain_microstrain": round(peak_strain, 1),
+            "health_score": round(gh.health_score, 3),
+            "excluded": gh.excluded,
+        })
+
+    # per-gauge bar chart
+    fig = go.Figure()
+    hor_gauges = [g for g in per_gauge if g["type"] == "horizontal_strain"]
+    ver_gauges = [g for g in per_gauge if g["type"] == "vertical_strain"]
+    for label, group, color in [("Horizontal", hor_gauges, THEME["accent"]),
+                                  ("Vertical", ver_gauges, THEME["secondary"])]:
+        if group:
+            fig.add_trace(go.Bar(
+                name=label,
+                x=[g["gauge"] for g in group],
+                y=[g["peak_strain_microstrain"] for g in group],
+                marker_color=color,
+                hovertemplate="Gauge: %{x}<br>Peak: %{y:.1f} µε<br>" + label + "<extra></extra>",
+            ))
+    fig.update_layout(**_layout("Per-Gauge Peak Strain by Type", "Gauge", "Peak Strain (µε)",
+                                 barmode="group"))
+
+    # collective strain histogram across bundles
+    bundle_strains_t, bundle_strains_v = [], []
+    for bundle in result["synced_bundles"][:100]:
+        from src.feature_engineering.feature_engineering import estimate_collective_strain
+        t_start = bundle.representative_time - 0.5
+        t_end = bundle.representative_time + 1.5
+        et, ev = estimate_collective_strain(df_filtered, health_map, gauge_types, t_start, t_end)
+        if et > 0:
+            bundle_strains_t.append(et)
+        if ev > 0:
+            bundle_strains_v.append(ev)
+
+    fig2 = go.Figure()
+    if bundle_strains_t:
+        fig2.add_trace(go.Box(y=bundle_strains_t, name="εt (horizontal)", marker_color=THEME["accent"],
+                               hovertemplate="εt: %{y:.1f} µε<extra></extra>"))
+    if bundle_strains_v:
+        fig2.add_trace(go.Box(y=bundle_strains_v, name="εv (vertical)", marker_color=THEME["secondary"],
+                               hovertemplate="εv: %{y:.1f} µε<extra></extra>"))
+    fig2.add_hline(y=eps_t, line_dash="dash", line_color=THEME["accent"],
+                   annotation_text=f"p95 εt = {eps_t:.0f} µε")
+    fig2.add_hline(y=eps_v, line_dash="dash", line_color=THEME["secondary"],
+                   annotation_text=f"p95 εv = {eps_v:.0f} µε")
+    fig2.update_layout(**_layout("Collective Strain Distribution Across Events", "Strain Type", "Strain (µε)"))
+
+    return {
+        "per_gauge": per_gauge,
+        "eps_t": round(eps_t, 1),
+        "eps_v": round(eps_v, 1),
+        "n_gauges": len(per_gauge),
+        "n_horizontal": len(hor_gauges),
+        "n_vertical": len(ver_gauges),
+        "plot_json": fig.to_json(),
+        "plot_json2": fig2.to_json(),
+    }
+
+
+@router.get("/viz/temperature")
+async def get_temperature(offset_ch10: float = 0, offset_ch11: float = 0):
+    dd = _get_demo_data()
+    df_combined = dd["df_combined"]
+
+    ch10 = "CH10_hor"
+    ch11 = "CH11_hor"
+
+    times = df_combined.index[:5000].tolist()
+    raw_ch10 = df_combined[ch10].values[:5000].tolist() if ch10 in df_combined.columns else []
+    raw_ch11 = df_combined[ch11].values[:5000].tolist() if ch11 in df_combined.columns else []
+
+    cal_ch10 = [v + offset_ch10 for v in raw_ch10] if raw_ch10 else []
+    cal_ch11 = [v + offset_ch11 for v in raw_ch11] if raw_ch11 else []
+
+    fig = go.Figure()
+    if raw_ch10:
+        fig.add_trace(go.Scatter(x=times, y=raw_ch10, mode="lines",
+                                 name="CH10 Raw", line=dict(color=THEME["danger"], width=1),
+                                 hovertemplate="Time: %{x:.3f}s<br>Raw: %{y:.1f} °C<extra></extra>"))
+        fig.add_trace(go.Scatter(x=times, y=cal_ch10, mode="lines",
+                                 name="CH10 Calibrated", line=dict(color=THEME["accent"], width=1.5),
+                                 hovertemplate="Time: %{x:.3f}s<br>Cal: %{y:.1f} °C<extra></extra>"))
+    if raw_ch11:
+        fig.add_trace(go.Scatter(x=times, y=raw_ch11, mode="lines",
+                                 name="CH11 Raw", line=dict(color=THEME["secondary"], width=1, dash="dot"),
+                                 hovertemplate="Time: %{x:.3f}s<br>Raw: %{y:.1f} °C<extra></extra>"))
+        fig.add_trace(go.Scatter(x=times, y=cal_ch11, mode="lines",
+                                 name="CH11 Calibrated", line=dict(color=THEME["primary"], width=1.5, dash="dot"),
+                                 hovertemplate="Time: %{x:.3f}s<br>Cal: %{y:.1f} °C<extra></extra>"))
+    fig.update_layout(**_layout("Temperature Channels — Raw vs Calibrated", "Time (s)", "Temperature (°C)"))
+
+    stats = {}
+    for label, raw in [("CH10", raw_ch10), ("CH11", raw_ch11)]:
+        if raw:
+            stats[label] = {
+                "mean": round(float(np.mean(raw)), 1),
+                "min": round(float(np.min(raw)), 1),
+                "max": round(float(np.max(raw)), 1),
+            }
+
+    return {
+        "ch10_raw": raw_ch10,
+        "ch10_calibrated": cal_ch10,
+        "ch11_raw": raw_ch11,
+        "ch11_calibrated": cal_ch11,
+        "times": times,
+        "stats": stats,
+        "offset_ch10": offset_ch10,
+        "offset_ch11": offset_ch11,
+        "plot_json": fig.to_json(),
+    }
+
+
 @router.post("/refresh")
 async def refresh_cache():
     _cache.clear()
