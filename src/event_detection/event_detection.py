@@ -156,32 +156,62 @@ def extract_events(gauge_data: pd.Series, gauge_id: str,
             )
             for p in peak_group
         ]
-        # Estimate axle count (unique axle times within spacing)
+
+        def _make_event(axle_list, offset) -> VehicleEvent | None:
+            unique_times = sorted(set(round(a.time_s, 2) for a in axle_list))
+            cnt = max(1, len(unique_times))
+            if cnt < ED["min_axles"] or cnt > ED["max_axles"]:
+                return None
+            peak_vals = [a.peak_strain for a in axle_list]
+            first_idx = min(a.sample_idx for a in axle_list)
+            last_idx = max(a.sample_idx for a in axle_list)
+            st = float(times[max(0, first_idx - int(0.1 * fs))])
+            et = float(times[min(len(times) - 1, last_idx + int(0.1 * fs))])
+            return VehicleEvent(
+                vehicle_id=vehicle_id_start + offset,
+                gauge_id=gauge_id,
+                start_time=st, end_time=et,
+                axle_count=cnt, axles=axle_list,
+                vehicle_type_estimate=cnt,
+                peak_strains=peak_vals,
+                max_strain=float(np.max(np.abs(peak_vals))),
+                mean_strain=float(np.mean(np.abs(peak_vals))),
+                duration_s=et - st,
+            )
+
+        # Estimate axle count first
         unique_times = sorted(set(round(a.time_s, 2) for a in axles))
         axle_count = max(1, len(unique_times))
-        axle_count = min(axle_count, ED["max_axles"])
 
-        if axle_count < ED["min_axles"]:
+        if axle_count < ED["min_axles"] and events:
+            # Merge with last event
+            last = events[-1]
+            last.axles.extend(axles)
+            last.peak_strains = [a.peak_strain for a in last.axles]
+            last.max_strain = float(np.max(np.abs(last.peak_strains)))
+            last.mean_strain = float(np.mean(np.abs(last.peak_strains)))
+            last.end_time = float(times[min(len(times) - 1, max(a.sample_idx for a in axles) + int(0.1 * fs))])
+            last.duration_s = last.end_time - last.start_time
+            unique_times = sorted(set(round(a.time_s, 2) for a in last.axles))
+            last.axle_count = min(max(1, len(unique_times)), ED["max_axles"])
+            last.vehicle_type_estimate = last.axle_count
+            continue
+        elif axle_count < ED["min_axles"]:
             continue
 
-        peak_strains = [a.peak_strain for a in axles]
-        start_t = float(times[max(0, peak_group[0] - int(0.1 * fs))])
-        end_t = float(times[min(len(times) - 1, peak_group[-1] + int(0.1 * fs))])
-
-        event = VehicleEvent(
-            vehicle_id=vehicle_id_start + vid_offset,
-            gauge_id=gauge_id,
-            start_time=start_t,
-            end_time=end_t,
-            axle_count=axle_count,
-            axles=axles,
-            vehicle_type_estimate=axle_count,
-            peak_strains=peak_strains,
-            max_strain=float(np.max(np.abs(peak_strains))),
-            mean_strain=float(np.mean(np.abs(peak_strains))),
-            duration_s=end_t - start_t,
-        )
-        events.append(event)
+        if axle_count > ED["max_axles"]:
+            # Split into two vehicles
+            mid = len(axles) // 2
+            first = _make_event(axles[:mid], len(events))
+            second = _make_event(axles[mid:], len(events) + 1)
+            if first:
+                events.append(first)
+            if second:
+                events.append(second)
+        else:
+            ev = _make_event(axles, len(events))
+            if ev:
+                events.append(ev)
 
     log.info(f"Gauge {gauge_id}: {len(events)} vehicle events detected")
     return events

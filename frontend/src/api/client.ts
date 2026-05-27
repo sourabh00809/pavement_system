@@ -14,6 +14,7 @@ export const pipelineApi = {
 
 export const vizApi = {
   signals: (gauge = 'CH0') => api.get('/viz/signals', { params: { gauge } }).then(r => r.data),
+  signalsAll: () => api.get('/viz/signals/all').then(r => r.data),
   health: () => api.get('/viz/health').then(r => r.data),
   events: () => api.get('/viz/events').then(r => r.data),
   sync: () => api.get('/viz/sync').then(r => r.data),

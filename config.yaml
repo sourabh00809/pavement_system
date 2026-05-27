@@ -1,5 +1,5 @@
 project:
-  name: "Pavement AI System"
+  name: "Pavement Analysis System"
   version: "2.0"
   institution: "IIT Tirupati - CEE"
   project: "BTP Phase II - NH-71 GEOTRAN"
@@ -38,12 +38,12 @@ event_detection:
   min_prominence_microstrain: 5  # µε
   axle_grouping_window: 0.5      # seconds
   vehicle_grouping_window: 3.0   # seconds
-  min_axles: 1
-  max_axles: 8
+  min_axles: 2
+  max_axles: 5
 
 sensor_health:
-  dead_gauge_std_threshold: 1.0      # µε — below = likely dead
-  saturated_offset_threshold: 500.0  # µε — above = saturated/damaged
+  dead_gauge_std_threshold: 2.0      # µε — below = likely dead
+  saturated_offset_threshold: 200.0  # µε — above = saturated/damaged
   health_score_window: 60.0          # seconds
   exclude_threshold: 0.3             # health score below → exclude from Nf/Nr
 
@@ -81,5 +81,4 @@ vehicle_classes:
   2: "2-Axle"
   3: "3-Axle"
   4: "4-Axle"
-  5: "5-Axle (3S2)"
-  6: "6-Axle"
+  5: "5-Axle"

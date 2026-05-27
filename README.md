@@ -1,6 +1,5 @@
 ---
-title: Pavement AI System
-emoji: 🛣️
+title: Pavement Analysis System
 colorFrom: indigo
 colorTo: blue
 sdk: docker
@@ -9,8 +8,8 @@ pinned: false
 license: mit
 ---
 
-# Pavement AI System
+# Pavement Analysis System
 
-End-to-end AI/ML pipeline for pavement response analysis and fatigue/rutting life prediction (IRC:37-2018).
+https://sourabh00809-pavement-system.hf.space/
 
-See README.md for full documentation.
+End-to-end pipeline for pavement response analysis and fatigue/rutting life prediction per IRC:37-2018. Built with FastAPI + React.

@@ -1,5 +1,5 @@
 """
-run_pipeline.py — Pavement AI Pipeline (CLI Entry Point)
+run_pipeline.py — Pavement Analysis Pipeline (CLI Entry Point)
 Updated: now supports --api flag to start the FastAPI server.
 """
 from __future__ import annotations
@@ -70,7 +70,7 @@ def run_pipeline(ver_path: str | None = None,
                  demo: bool = False) -> dict:
     """Full end-to-end pipeline execution. Returns dict with all results."""
     log.info("=" * 60)
-    log.info("PAVEMENT AI SYSTEM — PIPELINE START")
+    log.info("PAVEMENT ANALYSIS SYSTEM — PIPELINE START")
     log.info("=" * 60)
 
     log.info("\n[STEP 1] Data Ingestion")
@@ -218,12 +218,12 @@ def run_pipeline(ver_path: str | None = None,
 def start_api_server():
     """Start the FastAPI server."""
     import uvicorn
-    log.info("Starting Pavement AI API server...")
+    log.info("Starting Pavement Analysis API server...")
     uvicorn.run("src.api.main:app", host="0.0.0.0", port=8000, reload=False)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pavement AI System Pipeline")
+    parser = argparse.ArgumentParser(description="Pavement Analysis System Pipeline")
     parser.add_argument("--ver", type=str, default=None, help="Path to VER GEOTRAN .xls file")
     parser.add_argument("--hor", type=str, default=None, help="Path to HOR GEOTRAN .xls file")
     parser.add_argument("--demo", action="store_true", help="Run with synthetic demo data")

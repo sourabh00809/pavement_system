@@ -26,7 +26,7 @@ export default function Sidebar({ open, onToggle }: { open: boolean; onToggle: (
             <path d="M28 32 L36 32" stroke="#4a90d9" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <div>
-            <p className="font-semibold text-sm">Pavement AI</p>
+            <p className="font-semibold text-sm">Pavement Analysis</p>
             <p className="text-xs text-white/50">IIT Tirupati</p>
           </div>
         </div>

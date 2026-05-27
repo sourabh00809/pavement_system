@@ -1,14 +1,34 @@
 import { useEffect, useState } from 'react'
+import { useLocation, Link } from 'react-router-dom'
 import InteractivePlot from '../components/InteractivePlot'
 import MetricCard from '../components/MetricCard'
 import { vizApi, pipelineApi } from '../api/client'
 
+interface DesignState {
+  layers?: { Layer: string; 'Thickness (mm)': number }[]
+  A?: number; D?: number; F?: number; r?: number; n?: number; eMod?: number
+}
+
 export default function Prediction() {
+  const location = useLocation()
+  const designState = (location.state as DesignState) || {}
+
   const [lifeData, setLifeData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
   const [epsT, setEpsT] = useState(200)
   const [epsV, setEpsV] = useState(300)
-  const [eMod, setEMod] = useState(3000)
+  const [eMod, setEMod] = useState(designState.eMod || 3000)
+  const [A, setA] = useState(designState.A || 1000)
+  const [D, setD] = useState(designState.D || 0.75)
+  const [F, setF] = useState(designState.F || 4.5)
+  const [r, setR] = useState(designState.r || 0.05)
+  const [n, setN] = useState(designState.n || 20)
+  const [layers, setLayers] = useState(designState.layers || [
+    { Layer: 'Wearing Course (BC)', 'Thickness (mm)': 40 },
+    { Layer: 'Binder Course (DBM)', 'Thickness (mm)': 50 },
+    { Layer: 'Granular Base', 'Thickness (mm)': 250 },
+  ])
   const [customRunning, setCustomRunning] = useState(false)
   const [customResult, setCustomResult] = useState<any>(null)
 
@@ -20,15 +40,28 @@ export default function Prediction() {
     setCustomRunning(true)
     try {
       const res = await pipelineApi.predict({
-        epsilon_t: epsT,
-        epsilon_v: epsV,
-        E_MPa: eMod,
+        epsilon_t: epsT, epsilon_v: epsV, E_MPa: eMod,
+        A, D, F, r, n, layers,
       })
       setCustomResult(res)
     } catch (e: any) {
       setCustomResult({ error: e.message })
     }
     setCustomRunning(false)
+  }
+
+  const updateLayer = (i: number, field: string, value: string | number) => {
+    const next = [...layers]
+    next[i] = { ...next[i], [field]: field === 'Thickness (mm)' ? Number(value) : value }
+    setLayers(next)
+  }
+
+  const addLayer = () => {
+    setLayers([...layers, { Layer: '', 'Thickness (mm)': 0 }])
+  }
+
+  const removeLayer = (i: number) => {
+    if (layers.length > 1) setLayers(layers.filter((_, idx) => idx !== i))
   }
 
   const renderRedesign = (redesign: any) => {
@@ -60,9 +93,12 @@ export default function Prediction() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-primary">Pavement Life Prediction</h2>
-        <p className="text-gray-500 text-sm mt-1">IRC:37-2018 · Monte Carlo Uncertainty · Redesign Recommendations</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-primary">Life Prediction</h2>
+          <p className="text-gray-500 text-sm mt-1">IRC:37-2018 · Monte Carlo Uncertainty · Redesign Recommendations</p>
+        </div>
+        <Link to="/design" className="text-xs text-secondary hover:text-primary underline">Edit Design Params</Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -91,23 +127,79 @@ export default function Prediction() {
 
       <div className="card">
         <h3 className="card-title">Custom Life Prediction</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">εt (µε) — Horizontal tensile</label>
-            <input type="number" value={epsT} onChange={e => setEpsT(Number(e.target.value))} className="input-field" min={1} />
+            <h4 className="text-xs font-semibold text-gray-600 mb-2">Pavement Layers</h4>
+            <div className="space-y-2">
+              {layers.map((layer, i) => (
+                <div key={i} className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <input type="text" value={layer.Layer} onChange={e => updateLayer(i, 'Layer', e.target.value)}
+                      className="input-field text-xs" placeholder="Layer name" />
+                  </div>
+                  <div className="w-24">
+                    <input type="number" value={layer['Thickness (mm)']} onChange={e => updateLayer(i, 'Thickness (mm)', e.target.value)}
+                      className="input-field text-xs" min={0} />
+                  </div>
+                  <button onClick={() => removeLayer(i)} className="p-1 text-gray-400 hover:text-danger transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button onClick={addLayer} className="text-xs text-secondary hover:text-primary">+ Add Layer</button>
+            </div>
           </div>
+
           <div>
-            <label className="block text-xs text-gray-500 mb-1">εv (µε) — Vertical compressive</label>
-            <input type="number" value={epsV} onChange={e => setEpsV(Number(e.target.value))} className="input-field" min={1} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">E (MPa) — AC dynamic modulus</label>
-            <input type="number" value={eMod} onChange={e => setEMod(Number(e.target.value))} className="input-field" min={1} />
+            <h4 className="text-xs font-semibold text-gray-600 mb-2">Traffic Parameters</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500">A — CVPD</label>
+                <input type="number" value={A} onChange={e => setA(Number(e.target.value))} className="input-field text-xs" min={1} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500">D — Lane dist.</label>
+                <input type="number" step={0.05} value={D} onChange={e => setD(Number(e.target.value))} className="input-field text-xs" min={0} max={1} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500">F — VDF</label>
+                <input type="number" step={0.5} value={F} onChange={e => setF(Number(e.target.value))} className="input-field text-xs" min={1} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500">r — Growth</label>
+                <input type="number" step={0.01} value={r} onChange={e => setR(Number(e.target.value))} className="input-field text-xs" min={0} max={1} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500">n — Period (yr)</label>
+                <input type="number" value={n} onChange={e => setN(Number(e.target.value))} className="input-field text-xs" min={1} max={50} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500">E — Modulus (MPa)</label>
+                <input type="number" value={eMod} onChange={e => setEMod(Number(e.target.value))} className="input-field text-xs" min={100} />
+              </div>
+            </div>
           </div>
         </div>
-        <button onClick={runCustom} disabled={customRunning} className="btn-primary">
-          {customRunning ? 'Computing...' : 'Run Prediction'}
-        </button>
+
+        <div className="border-t border-gray-100 pt-4">
+          <h4 className="text-xs font-semibold text-gray-600 mb-2">Strain Inputs</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">εt (µε) — Horizontal tensile</label>
+              <input type="number" value={epsT} onChange={e => setEpsT(Number(e.target.value))} className="input-field" min={1} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">εv (µε) — Vertical compressive</label>
+              <input type="number" value={epsV} onChange={e => setEpsV(Number(e.target.value))} className="input-field" min={1} />
+            </div>
+          </div>
+          <button onClick={runCustom} disabled={customRunning} className="btn-primary">
+            {customRunning ? 'Computing...' : 'Run Prediction'}
+          </button>
+        </div>
 
         {customResult && !customResult.error && (
           <div className="mt-4 space-y-4">
@@ -115,13 +207,24 @@ export default function Prediction() {
               <div><span className="text-gray-500">Nf:</span> <span className="font-medium">{customResult.Nf}</span></div>
               <div><span className="text-gray-500">Nr:</span> <span className="font-medium">{customResult.Nr}</span></div>
               <div><span className="text-gray-500">Nd:</span> <span className="font-medium">{customResult.Nd}</span></div>
-              <div><span className="text-gray-500">Adequate:</span> <span className={`font-medium ${customResult.design_adequate ? 'text-success' : 'text-danger'}`}>{customResult.design_adequate ? 'Yes' : 'No'}</span></div>
+              <div><span className="text-gray-500">Adequate:</span> <span className={`font-medium ${customResult.design_adequate ? 'text-green-600' : 'text-red-600'}`}>{customResult.design_adequate ? 'Yes' : 'No'}</span></div>
             </div>
+            {customResult.uncertainty && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-xs font-semibold text-gray-700 mb-2">Monte Carlo Uncertainty (90% CI)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div><span className="text-gray-500">Nf p5:</span> <span className="font-medium">{customResult.uncertainty.Nf_p5?.toExponential(2)}</span></div>
+                  <div><span className="text-gray-500">Nf p95:</span> <span className="font-medium">{customResult.uncertainty.Nf_p95?.toExponential(2)}</span></div>
+                  <div><span className="text-gray-500">Nr p5:</span> <span className="font-medium">{customResult.uncertainty.Nr_p5?.toExponential(2)}</span></div>
+                  <div><span className="text-gray-500">Nr p95:</span> <span className="font-medium">{customResult.uncertainty.Nr_p95?.toExponential(2)}</span></div>
+                </div>
+              </div>
+            )}
             {customResult.redesign && renderRedesign(customResult.redesign)}
           </div>
         )}
         {customResult?.error && (
-          <p className="mt-4 text-sm text-danger">{customResult.error}</p>
+          <p className="mt-4 text-sm text-red-600">{customResult.error}</p>
         )}
       </div>
     </div>

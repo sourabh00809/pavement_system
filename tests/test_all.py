@@ -1,5 +1,5 @@
 """
-Unit tests — Pavement AI System
+Unit tests — Pavement Analysis System
 Run with: python -m unittest tests.test_all -v
 """
 import unittest

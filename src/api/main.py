@@ -1,5 +1,5 @@
 """
-FastAPI Application — Pavement AI System
+FastAPI Application — Pavement Analysis System
 BTP Phase II | IIT Tirupati | NH-71
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ from src.api.routes_export import router as export_router
 from src.api.routes_upload import router as upload_router
 
 app = FastAPI(
-    title="Pavement AI System",
+    title="Pavement Analysis System",
     description="End-to-end pavement response analysis and fatigue/rutting life prediction (IRC:37-2018)",
     version="2.0",
 )
@@ -26,7 +26,7 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://pavement-ai.vercel.app",
+    "https://pavement-analysis.vercel.app",
     # Add your actual Vercel URL here after deploy, e.g.:
     # "https://pavement-system-sourabh.vercel.app",
     # For HF Spaces deployment:
@@ -50,7 +50,7 @@ app.include_router(upload_router, prefix="/api")
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "project": "Pavement AI System", "version": "2.0"}
+    return {"status": "ok", "project": "Pavement Analysis System", "version": "2.0"}
 
 
 # Mount static frontend in production

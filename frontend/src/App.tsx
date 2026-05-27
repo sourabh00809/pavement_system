@@ -29,7 +29,7 @@ function App() {
               </svg>
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-primary">Pavement AI System</h1>
+              <h1 className="text-lg font-semibold text-primary">Pavement Analysis System</h1>
               <p className="text-xs text-gray-400">NH-71 Instrumented Pavement · IIT Tirupati</p>
             </div>
           </div>

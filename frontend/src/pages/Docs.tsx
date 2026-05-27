@@ -2,9 +2,9 @@ export default function Docs() {
   const sections = [
     {
       title: 'Project Overview',
-      content: `The Pavement AI System is an end-to-end AI/ML pipeline for pavement response analysis and fatigue/rutting life prediction using real-time strain gauge data from the NH-71 instrumented pavement project at IIT Tirupati (CEE). The system processes data from 30 strain gauges (500,000 samples/file at 500 Hz) collected via GEOTRAN DAQ systems.
+      content: `The Pavement Analysis System is an end-to-end pipeline for pavement response analysis and fatigue/rutting life prediction using real-time strain gauge data from the NH-71 instrumented pavement project at IIT Tirupati (CEE). The system processes data from 30 strain gauges (500,000 samples/file at 500 Hz) collected via GEOTRAN DAQ systems.
 
-The pipeline implements IRC:37-2018 mechanistic-empirical design equations with physics-constrained ML models, providing pavement life prediction (Nf, Nr, Nd), Monte Carlo uncertainty quantification, and automated redesign recommendations.`,
+The pipeline implements IRC:37-2018 mechanistic-empirical design equations with physics-constrained models, providing pavement life prediction (Nf, Nr, Nd), Monte Carlo uncertainty quantification, and automated redesign recommendations.`,
     },
     {
       title: 'Module Architecture',
@@ -65,7 +65,7 @@ HOR File:
 The system auto-detects faulty gauges (dead, saturated, drifting, or uncalibrated sensors) and excludes them from strain estimation via health-score weighting.`,
     },
     {
-      title: 'ML Models',
+      title: 'ML Models (Vehicle Classification & Strain Prediction)',
       content: `Vehicle Type Classifier (XGBoost):
 • 200 estimators, max depth 6
 • 13 waveform/axle features
@@ -85,20 +85,14 @@ Autoencoder Anomaly Detector:
     },
     {
       title: 'Deployment',
-      content: `The application consists of two components:
+      content: `Single-container deployment on Hugging Face Spaces (Docker):
 
-Backend (FastAPI):
-• REST API serving all pipeline modules
-• Deployed on Render.com (free tier)
-• GitHub auto-deploy
-
-Frontend (React + Vite + Tailwind CSS):
-• SPA with client-side routing and Recharts
-• Deployed on Vercel (free tier, global CDN)
-• Proxies API calls to Render backend
+• Backend: FastAPI serving all pipeline modules on port 7860
+• Frontend: Built React SPA served directly by FastAPI (no separate hosting)
+• Live at: https://sourabh00809-pavement-system.hf.space
 
 Architecture:
-  Vercel (React SPA) → Render (FastAPI) → Core Python modules`,
+  Browser → HF Spaces (Docker) → FastAPI (API + Static) → Core Python modules`,
     },
   ]
 
@@ -114,7 +108,7 @@ Architecture:
           <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          <h3 className="font-semibold">Pavement AI System v2.0</h3>
+          <h3 className="font-semibold">Pavement Analysis System v2.0</h3>
         </div>
         <p className="text-sm text-white/80">Advisor: Prof. B. Krishna Prapoorna · IIT Tirupati · Department of Civil & Environmental Engineering</p>
       </div>

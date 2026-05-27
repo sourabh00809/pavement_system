@@ -105,14 +105,40 @@ async def get_signals(gauge: str = "CH0"):
     }
 
 
-@router.get("/viz/health")
-async def get_health():
-    from src.sensor_health.sensor_health import assess_all_gauges
-
+@router.get("/viz/signals/all")
+async def get_all_signals():
     dd = _get_demo_data()
     df_filtered = dd["df_filtered"]
-    health_map = assess_all_gauges(df_filtered)
-    gauges_data = [gh.to_dict() for gh in health_map.values()]
+    gauge_types = dd["gauge_types"]
+
+    ver_cols = [c for c in df_filtered.columns if gauge_types.get(c) == "vertical_strain"]
+    hor_cols = [c for c in df_filtered.columns if gauge_types.get(c) == "horizontal_strain"]
+
+    times = df_filtered.index[:3000]
+    fig = go.Figure()
+    for c in hor_cols:
+        fig.add_trace(go.Scatter(x=times, y=df_filtered[c].values[:3000], mode="lines",
+                                 name=f"{c} [H]", line=dict(width=1),
+                                 hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
+    for c in ver_cols:
+        fig.add_trace(go.Scatter(x=times, y=df_filtered[c].values[:3000], mode="lines",
+                                 name=f"{c} [V]", line=dict(width=1),
+                                 hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
+    fig.update_layout(**_layout("All Gauge Signals — First 6s Window", "Time (s)", "Strain (µε)",
+                                 legend=dict(font=dict(size=9))))
+    return {"plot_json": fig.to_json(), "n_gauges": len(df_filtered.columns), "n_horizontal": len(hor_cols), "n_vertical": len(ver_cols)}
+
+
+@router.get("/viz/health")
+async def get_health():
+    try:
+        from src.sensor_health.sensor_health import assess_all_gauges
+        dd = _get_demo_data()
+        df_filtered = dd["df_filtered"]
+        health_map = assess_all_gauges(df_filtered)
+        gauges_data = [gh.to_dict() for gh in health_map.values()]
+    except Exception as e:
+        return {"gauges": [], "plot_json": None, "error": str(e)}
 
     names = [g["gauge"] for g in gauges_data]
     scores = [g["health_score"] for g in gauges_data]
@@ -130,7 +156,15 @@ async def get_health():
                   annotation_text="Exclusion threshold", annotation_position="bottom right")
     fig.update_layout(**_layout("Gauge Health Scores", yaxis=dict(range=[0, 1.1], title="Health Score")))
 
-    return {"gauges": gauges_data, "plot_json": fig.to_json()}
+    n_healthy = sum(1 for g in gauges_data if not g["excluded"])
+    n_warning = sum(1 for g in gauges_data if 0.3 < g["health_score"] <= 0.7)
+    n_excluded = sum(1 for g in gauges_data if g["excluded"])
+
+    return {
+        "gauges": gauges_data,
+        "plot_json": fig.to_json(),
+        "summary": {"total": len(gauges_data), "healthy": n_healthy, "warning": n_warning, "excluded": n_excluded},
+    }
 
 
 @router.get("/viz/events")
