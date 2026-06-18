@@ -53,8 +53,23 @@ export default function Upload() {
         if (e.type === 'hor') horPath = uploadResults[i].path
       })
 
-      // Run pipeline with the uploaded files
-      const pipelineResult = await pipelineApi.run(false, verPath, horPath)
+      // Start pipeline in background — get task_id immediately
+      const { task_id } = await pipelineApi.run(false, verPath, horPath)
+
+      // Poll for completion (HF proxy has 60s timeout, so we poll async)
+      let pipelineResult: any
+      while (true) {
+        const status = await pipelineApi.status(task_id)
+        if (status.status === 'success') {
+          pipelineResult = status
+          break
+        }
+        if (status.status === 'error') {
+          throw new Error(status.error || 'Pipeline processing failed')
+        }
+        // Still running — wait 2s before next poll
+        await new Promise(r => setTimeout(r, 2000))
+      }
 
       setResult({
         success: true,
