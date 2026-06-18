@@ -2,15 +2,15 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  timeout: 30000,
+  timeout: 60000,
 })
 
 export default api
 
 export const pipelineApi = {
   run: (demo = true, verPath?: string, horPath?: string) =>
-    api.post('/pipeline/run', { demo, ver_path: verPath || null, hor_path: horPath || null }).then(r => r.data),
-  predict: (data: any) => api.post('/life/predict', data).then(r => r.data),
+    api.post('/pipeline/run', { demo, ver_path: verPath || null, hor_path: horPath || null }, { timeout: 180000 }).then(r => r.data),
+  predict: (data: any) => api.post('/life/predict', data, { timeout: 180000 }).then(r => r.data),
 }
 
 export const vizApi = {
@@ -33,5 +33,5 @@ export const exportApi = {
 export const uploadApi = (file: File) => {
   const fd = new FormData()
   fd.append('file', file)
-  return api.post('/upload', fd).then(r => r.data)
+  return api.post('/upload', fd, { timeout: 120000 }).then(r => r.data)
 }
