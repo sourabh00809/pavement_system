@@ -64,7 +64,8 @@ export default function Upload() {
         horPath,
       })
     } catch (err: any) {
-      setResult({ success: false, error: err.message })
+      const serverMsg = err.response?.data?.detail || err.response?.data?.message || err.message
+      setResult({ success: false, error: serverMsg })
     }
 
     setUploading(false)

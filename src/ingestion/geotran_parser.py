@@ -62,12 +62,23 @@ def parse_geotran(filepath: str | Path, daq_type: str = "auto") -> tuple[pd.Data
             daq_type = "UNKNOWN"
             log.warning("Could not auto-detect DAQ type from filename; defaulting to UNKNOWN")
 
+    # Infer engine from file extension (None = pandas auto-detect)
+    ext = filepath.suffix.lower()
+    excel_kwargs = {}
+    if ext == ".xlsx":
+        excel_kwargs["engine"] = "openpyxl"
+    elif ext == ".xls":
+        pass  # let pandas auto-detect (xlrd or calamine)
+
     # Try reading with header skip — GEOTRAN files have 12-row header
     try:
-        raw = pd.read_excel(filepath, header=None, engine="xlrd")
+        raw = pd.read_excel(filepath, header=None, **excel_kwargs)
     except Exception:
         # Fallback: tab-separated text disguised as xls
-        raw = pd.read_csv(filepath, sep="\t", header=None, encoding="utf-8", on_bad_lines="skip")
+        try:
+            raw = pd.read_csv(filepath, sep="\t", header=None, encoding="utf-8", on_bad_lines="skip")
+        except Exception:
+            raw = pd.read_csv(filepath, sep=",", header=None, encoding="utf-8", on_bad_lines="skip")
 
     # Detect actual header row (find row where column 0 == 0 or "Time")
     header_row = 0
@@ -79,11 +90,16 @@ def parse_geotran(filepath: str | Path, daq_type: str = "auto") -> tuple[pd.Data
 
     # Re-read with correct header
     try:
-        df = pd.read_excel(filepath, skiprows=header_row, engine="xlrd")
+        df = pd.read_excel(filepath, skiprows=header_row, **excel_kwargs)
     except Exception:
-        df = pd.read_csv(
-            filepath, sep="\t", skiprows=header_row, encoding="utf-8", on_bad_lines="skip"
-        )
+        try:
+            df = pd.read_csv(
+                filepath, sep="\t", skiprows=header_row, encoding="utf-8", on_bad_lines="skip"
+            )
+        except Exception:
+            df = pd.read_csv(
+                filepath, sep=",", skiprows=header_row, encoding="utf-8", on_bad_lines="skip"
+            )
 
     df.columns = [str(c).strip() for c in df.columns]
 
