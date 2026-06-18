@@ -8,8 +8,8 @@ const api = axios.create({
 export default api
 
 export const pipelineApi = {
-  run: (demo = true, verPath?: string, horPath?: string) =>
-    api.post('/pipeline/run', { demo, ver_path: verPath || null, hor_path: horPath || null }).then(r => r.data),
+  run: (demo = true, filePaths?: string[], verPath?: string, horPath?: string) =>
+    api.post('/pipeline/run', { demo, file_paths: filePaths || null, ver_path: verPath || null, hor_path: horPath || null }).then(r => r.data),
   status: (taskId: string) => api.get('/pipeline/status/' + taskId).then(r => r.data),
   predict: (data: any) => api.post('/life/predict', data, { timeout: 180000 }).then(r => r.data),
 }

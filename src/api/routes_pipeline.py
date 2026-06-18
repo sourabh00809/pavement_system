@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import base64
 import uuid
+from pathlib import Path
 from threading import Thread
 import numpy as np
 import pandas as pd
@@ -23,14 +24,23 @@ plt.rcParams.update({
     "font.family": "sans-serif",
 })
 
-# In-memory task store for async pipeline runs
 _task_store: dict = {}
+
+
+def _categorize_filepath(filepath: str) -> str:
+    name = Path(filepath).stem.upper()
+    if "VER" in name or "VERTICAL" in name:
+        return "VER"
+    if "HOR" in name or "HORIZONTAL" in name:
+        return "HOR"
+    return ""
 
 
 class PipelineRequest(BaseModel):
     ver_path: str | None = None
     hor_path: str | None = None
     demo: bool = True
+    file_paths: list[str] | None = None
 
 
 class LifePredictionInput(BaseModel):
@@ -47,6 +57,24 @@ class LifePredictionInput(BaseModel):
 
 @router.post("/pipeline/run")
 async def run_pipeline_endpoint(req: PipelineRequest):
+    # Auto-classify from file_paths if provided (frontend may send untyped files)
+    ver_path = req.ver_path
+    hor_path = req.hor_path
+    if req.file_paths:
+        for fp in req.file_paths:
+            cat = _categorize_filepath(fp)
+            if cat == "VER" and ver_path is None:
+                ver_path = fp
+            elif cat == "HOR" and hor_path is None:
+                hor_path = fp
+        # If some files still unclassified, assign by position
+        unclassified = [fp for fp in req.file_paths if not _categorize_filepath(fp)]
+        for i, fp in enumerate(unclassified):
+            if ver_path is None:
+                ver_path = fp
+            elif hor_path is None:
+                hor_path = fp
+
     task_id = uuid.uuid4().hex[:8]
     _task_store[task_id] = {"status": "running"}
 
@@ -54,11 +82,10 @@ async def run_pipeline_endpoint(req: PipelineRequest):
         try:
             from run_pipeline import run_pipeline as run_full_pipeline
             result = run_full_pipeline(
-                ver_path=req.ver_path or None,
-                hor_path=req.hor_path or None,
+                ver_path=ver_path,
+                hor_path=hor_path,
                 demo=req.demo,
             )
-            # Store in visualization cache so viz endpoints pick up real data
             from src.api.routes_visualization import set_pipeline_data
             set_pipeline_data(result)
             _task_store[task_id] = {"status": "done", "result": result}
