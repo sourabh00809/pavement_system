@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import InteractivePlot from '../components/InteractivePlot'
 import { vizApi } from '../api/client'
 
@@ -11,14 +11,21 @@ export default function Signals() {
   const [allData, setAllData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setLoading(true)
+  const fetchData = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     if (mode === 'all') {
-      vizApi.signalsAll().then(setAllData).finally(() => setLoading(false))
+      vizApi.signalsAll().then(setAllData).finally(() => { if (!silent) setLoading(false) })
     } else {
-      vizApi.signals(gauge).then(setSingleData).finally(() => setLoading(false))
+      vizApi.signals(gauge).then(setSingleData).finally(() => { if (!silent) setLoading(false) })
     }
   }, [mode, gauge])
+
+  useEffect(() => {
+    fetchData()
+    const handler = () => { if (!document.hidden) fetchData(true) }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [fetchData])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
 

@@ -176,12 +176,8 @@ export default function Upload() {
       {phase === 'processing' && (
         <div className="card text-center py-8">
           <div className="animate-spin w-8 h-8 border-4 border-secondary border-t-transparent rounded-full mx-auto mb-3"></div>
-          <p className="text-sm text-gray-500">Pipeline processing in background...</p>
-          <p className="text-xs text-gray-400 mt-1">You can navigate to other pages and results will appear when ready.</p>
-          <div className="flex gap-2 justify-center mt-4">
-            <button onClick={() => navigate('/')} className="btn-secondary text-sm">Go to Dashboard</button>
-            <button onClick={dismiss} className="btn-secondary text-sm bg-gray-100 text-gray-600">Dismiss</button>
-          </div>
+          <p className="text-sm text-gray-500">Running pipeline analysis...</p>
+          <p className="text-xs text-gray-400 mt-1">This normally takes 1–2 minutes. Results will appear below when ready.</p>
         </div>
       )}
 

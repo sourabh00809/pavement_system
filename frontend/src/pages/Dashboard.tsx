@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import MetricCard from '../components/MetricCard'
 import InteractivePlot from '../components/InteractivePlot'
 import { vizApi } from '../api/client'
@@ -11,7 +11,8 @@ export default function Dashboard() {
   const [sync, setSync] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchAll = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
     Promise.all([
       vizApi.life(),
       vizApi.health(),
@@ -20,8 +21,15 @@ export default function Dashboard() {
       vizApi.sync(),
     ]).then(([l, h, e, s, sy]) => {
       setLife(l); setHealth(h); setEvents(e); setStrains(s); setSync(sy)
-    }).finally(() => setLoading(false))
+    }).finally(() => { if (!silent) setLoading(false) })
   }, [])
+
+  useEffect(() => {
+    fetchAll()
+    const handler = () => { if (!document.hidden) fetchAll(true) }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [fetchAll])
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
 
