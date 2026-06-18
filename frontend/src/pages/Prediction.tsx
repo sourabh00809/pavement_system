@@ -7,6 +7,7 @@ import { vizApi, pipelineApi } from '../api/client'
 interface DesignState {
   layers?: { Layer: string; 'Thickness (mm)': number }[]
   A?: number; D?: number; F?: number; r?: number; n?: number; eMod?: number
+  K1?: number; K2?: number; K3?: number; K4?: number; K5?: number
 }
 
 export default function Prediction() {
@@ -24,6 +25,11 @@ export default function Prediction() {
   const [F, setF] = useState(designState.F || 4.5)
   const [r, setR] = useState(designState.r || 0.05)
   const [n, setN] = useState(designState.n || 20)
+  const [K1, setK1] = useState(designState.K1 ?? 3.34e18)
+  const [K2, setK2] = useState(designState.K2 ?? 3.58)
+  const [K3, setK3] = useState(designState.K3 ?? 1.75)
+  const [K4, setK4] = useState(designState.K4 ?? 6.15e-7)
+  const [K5, setK5] = useState(designState.K5 ?? 4.0)
   const [layers, setLayers] = useState(designState.layers || [
     { Layer: 'Wearing Course (BC)', 'Thickness (mm)': 40 },
     { Layer: 'Binder Course (DBM)', 'Thickness (mm)': 50 },
@@ -42,6 +48,7 @@ export default function Prediction() {
       const res = await pipelineApi.predict({
         epsilon_t: epsT, epsilon_v: epsV, E_MPa: eMod,
         A, D, F, r, n, layers,
+        K1, K2, K3, K4, K5,
       })
       setCustomResult(res)
     } catch (e: any) {
@@ -180,6 +187,32 @@ export default function Prediction() {
                 <label className="block text-xs text-gray-500">E — Modulus (MPa)</label>
                 <input type="number" value={eMod} onChange={e => setEMod(Number(e.target.value))} className="input-field text-xs" min={100} />
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-100 pt-4 mb-4">
+          <h4 className="text-xs font-semibold text-gray-600 mb-2">Material Parameters</h4>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500">K1 (fatigue)</label>
+              <input type="number" step="1e15" value={K1} onChange={e => setK1(Number(e.target.value))} className="input-field text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500">K2 (εt exponent)</label>
+              <input type="number" step={0.01} value={K2} onChange={e => setK2(Number(e.target.value))} className="input-field text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500">K3 (E exponent)</label>
+              <input type="number" step={0.01} value={K3} onChange={e => setK3(Number(e.target.value))} className="input-field text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500">K4 (rutting)</label>
+              <input type="number" step="1e-7" value={K4} onChange={e => setK4(Number(e.target.value))} className="input-field text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500">K5 (εv exponent)</label>
+              <input type="number" step={0.1} value={K5} onChange={e => setK5(Number(e.target.value))} className="input-field text-xs" />
             </div>
           </div>
         </div>

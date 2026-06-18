@@ -1,7 +1,9 @@
 """
-Module G — Mechanistic Engine (IRC:37-2018)
+Module G — Mechanistic Engine
 Fatigue life (Nf), Rutting life (Nr), Design Traffic (Nd) calculations.
-Based on IRC:37-2018 / Asphalt Institute / Shell pavement design equations.
+Fatigue: Nf = K1 × (1/εt)^K2 × (1/E)^K3  (default: 3.34e18 × (1/εt)^3.58 × (1/E)^1.75)
+Rutting: Nr = K4 × (1/εv)^K5  (Shell model)
+Design traffic: Nd = 365 × A × D × F × ((1+r)^n - 1) / r  (IRC:37)
 """
 from __future__ import annotations
 import numpy as np
@@ -107,6 +109,7 @@ def recommend_pavement_redesign(epsilon_t_microstrain: float,
                                 target_utilization: float = 0.90) -> dict:
     """
     Screen practical pavement redesign options and return the lightest adequate one.
+    Material parameters K1-K5 are overridable for what-if scenarios.
 
     The search balances layer-depth increases and binder-property improvements.
     It is intentionally deterministic so the dashboard gives repeatable guidance.
@@ -189,20 +192,23 @@ def recommend_pavement_redesign(epsilon_t_microstrain: float,
     }
 
 
-def nf_irc(epsilon_t_microstrain: float,
-           E_MPa: float,
-           K1: float = ME["K1"],
-           K2: float = ME["K2"],
-           K3: float = ME["K3"]) -> float:
+def nf_fatigue(epsilon_t_microstrain: float,
+               E_MPa: float,
+               K1: float = ME["K1"],
+               K2: float = ME["K2"],
+               K3: float = ME["K3"]) -> float:
     """
-    IRC:37-2018 / Asphalt Institute fatigue life equation.
+    Fatigue life equation.
     Nf = K1 × (1/εt)^K2 × (1/E)^K3
+
+    Default constants: K1=3.34e18, K2=3.58, K3=1.75
+    → Nf = 3.34e18 × (1/εt)^3.58 × (1/E)^1.75
 
     Parameters
     ----------
     epsilon_t_microstrain : tensile strain at bottom of AC layer (µε)
-    E_MPa                 : dynamic modulus of AC mix (MPa)
-    K1, K2, K3            : material calibration constants (IRC B-80 defaults)
+    E_MPa                 : resilient modulus of AC mix (MPa)
+    K1, K2, K3            : material calibration constants
 
     Returns
     -------
@@ -210,8 +216,8 @@ def nf_irc(epsilon_t_microstrain: float,
     """
     if epsilon_t_microstrain <= 0 or E_MPa <= 0:
         raise ValueError("Strain and modulus must be positive")
-    epsilon_t = epsilon_t_microstrain * 1e-6  # convert µε → dimensionless
-    Nf = K1 * (1.0 / epsilon_t) ** K2 * (1.0 / E_MPa) ** K3
+    # εt is used as the raw microstrain value (e.g., 200 for 200 µε)
+    Nf = K1 * (1.0 / epsilon_t_microstrain) ** K2 * (1.0 / E_MPa) ** K3
     return float(Nf)
 
 
@@ -278,10 +284,11 @@ def compute_pavement_life(epsilon_t_microstrain: float,
                           K4: float = ME["K4"], K5: float = ME["K5"],
                           log_result: bool = True) -> PavementLifeResult:
     """
-    Full IRC:37-2018 pavement life computation.
+    Full pavement life computation (fatigue + rutting + design traffic).
     Computes Nf, Nr, Nd and determines governing failure mode.
+    Material parameters K1-K5 are overridable for site-specific calibration.
     """
-    Nf = nf_irc(epsilon_t_microstrain, E_MPa, K1, K2, K3)
+    Nf = nf_fatigue(epsilon_t_microstrain, E_MPa, K1, K2, K3)
     Nr = nr_shell(epsilon_v_microstrain, K4, K5)
     Nd = nd_irc(A, D, F, r, n)
 
@@ -327,7 +334,7 @@ def compute_life_with_uncertainty(epsilon_t_microstrain: float,
     eps_t_samples = np.clip(eps_t_samples, 1.0, None)
     eps_v_samples = np.clip(eps_v_samples, 1.0, None)
 
-    Nf_samples = np.array([nf_irc(e, E_MPa, **{k: v for k, v in kwargs.items() if k in ["K1","K2","K3"]})
+    Nf_samples = np.array([nf_fatigue(e, E_MPa, **{k: v for k, v in kwargs.items() if k in ["K1","K2","K3"]})
                             for e in eps_t_samples])
     Nr_samples = np.array([nr_shell(e, **{k: v for k, v in kwargs.items() if k in ["K4","K5"]})
                             for e in eps_v_samples])

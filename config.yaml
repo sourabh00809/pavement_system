@@ -54,13 +54,16 @@ synchronization:
   dbscan_min_samples: 2
 
 mechanistic:
-  # IRC:37-2018 fatigue (B-80 bituminous mix)
-  K1: 0.005837
-  K2: 3.89
-  K3: 0.854
-  # Shell rutting model
+  # Fatigue life: Nf = K1 × (1/εt)^K2 × (1/E)^K3
+  # New formula: Nf = 3.34e18 × (1/εt)^3.58 × (1/E)^1.75
+  K1: 3.34e+18
+  K2: 3.58
+  K3: 1.75
+  # Rutting life: Nr = K4 × (1/εv)^K5
   K4: 6.15e-7
   K5: 4.0
+  # Default material parameters (overridable in UI)
+  default_resilient_modulus: 3000   # MPa (E)
   # Design traffic defaults
   default_growth_rate: 0.05       # 5% annual
   default_design_period: 20       # years

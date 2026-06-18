@@ -133,10 +133,10 @@ class TestEventDetection(unittest.TestCase):
 class TestMechanistic(unittest.TestCase):
     def setUp(self):
         from src.mechanistic.mechanistic import (
-            nf_irc, nr_shell, nd_irc,
+            nf_fatigue, nr_shell, nd_irc,
             compute_pavement_life, compute_life_with_uncertainty
         )
-        self.nf = nf_irc
+        self.nf = nf_fatigue
         self.nr = nr_shell
         self.nd = nd_irc
         self.full = compute_pavement_life
@@ -149,8 +149,8 @@ class TestMechanistic(unittest.TestCase):
         self.assertGreater(self.nf(100.0, 3000.0), self.nf(400.0, 3000.0))
 
     def test_nf_known_value(self):
-        eps_t = 200e-6
-        E, K1, K2, K3 = 3000.0, 0.005837, 3.89, 0.854
+        eps_t = 200.0  # raw microstrain (no 1e-6 conversion)
+        E, K1, K2, K3 = 3000.0, 3.34e18, 3.58, 1.75
         expected = K1 * (1 / eps_t) ** K2 * (1 / E) ** K3
         self.assertAlmostEqual(self.nf(200.0, E) / expected, 1.0, places=3)
 
@@ -184,7 +184,7 @@ class TestMechanistic(unittest.TestCase):
         self.assertEqual(self.full(800.0, 100.0).governing_failure, "fatigue")
 
     def test_governing_rutting(self):
-        self.assertEqual(self.full(100.0, 800.0).governing_failure, "rutting")
+        self.assertEqual(self.full(50.0, 800.0).governing_failure, "rutting")
 
     def test_uncertainty_keys(self):
         unc = self.full_unc(200.0, 300.0, 20.0, 30.0, E_MPa=3000.0, n_samples=50)
@@ -200,13 +200,13 @@ class TestMechanistic(unittest.TestCase):
     def test_redesign_recommendation_for_failed_section(self):
         from src.mechanistic.mechanistic import recommend_pavement_redesign
         redesign = recommend_pavement_redesign(
-            800.0, 800.0, E_MPa=3000.0,
+            100.0, 300.0, E_MPa=3000.0,
             layers=[
                 {"Layer": "Wearing Course", "Thickness (mm)": 50},
                 {"Layer": "Binder Course", "Thickness (mm)": 100},
                 {"Layer": "Sub-base", "Thickness (mm)": 300},
             ],
-            A=3000.0,
+            A=100.0,
         )
         rec = redesign["recommended"]
         self.assertIsNotNone(rec)
