@@ -36,3 +36,10 @@ export const uploadApi = (file: File) => {
   fd.append('file', file)
   return api.post('/upload', fd, { timeout: 120000 }).then(r => r.data)
 }
+
+export const uploadPathsApi = {
+  save: (verPath?: string, horPath?: string) =>
+    api.post('/upload/paths', { ver_path: verPath || null, hor_path: horPath || null }).then(r => r.data),
+  status: () =>
+    api.get('/upload/paths').then(r => r.data),
+}

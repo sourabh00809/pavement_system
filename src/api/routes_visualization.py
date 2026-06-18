@@ -43,7 +43,7 @@ def _rangeslider_layout(start: float = 0, end: float = 10) -> dict:
 
 
 def _get_pipeline_data() -> dict:
-    """Unified cache: real data if uploaded, otherwise demo data."""
+    """Unified cache: real data if uploaded+processed, otherwise demo data."""
     if "pipeline_data" in _cache:
         return _cache["pipeline_data"]
     from run_pipeline import run_pipeline
@@ -55,6 +55,27 @@ def _get_pipeline_data() -> dict:
 def set_pipeline_data(result: dict) -> None:
     """Store real pipeline results (called by routes_pipeline)."""
     _cache["pipeline_data"] = result
+    _cache["_pipeline_is_demo"] = False
+
+
+def set_uploaded_paths(ver_path: str | None, hor_path: str | None) -> None:
+    """Store uploaded file paths (called after file upload)."""
+    if ver_path:
+        _cache["uploaded_ver_path"] = ver_path
+    if hor_path:
+        _cache["uploaded_hor_path"] = hor_path
+
+
+def get_upload_status() -> dict:
+    """Return whether uploaded files exist and whether they've been processed."""
+    has_uploads = "uploaded_ver_path" in _cache or "uploaded_hor_path" in _cache
+    has_processed = "pipeline_data" in _cache and not _cache.get("_pipeline_is_demo", True)
+    return {
+        "has_uploads": has_uploads,
+        "has_processed": has_processed,
+        "ver_path": _cache.get("uploaded_ver_path"),
+        "hor_path": _cache.get("uploaded_hor_path"),
+    }
 
 
 @router.get("/viz/signals")

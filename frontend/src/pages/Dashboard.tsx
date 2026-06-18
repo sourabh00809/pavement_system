@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import MetricCard from '../components/MetricCard'
 import InteractivePlot from '../components/InteractivePlot'
-import { vizApi } from '../api/client'
+import { vizApi, pipelineApi, uploadPathsApi } from '../api/client'
 
 export default function Dashboard() {
   const [life, setLife] = useState<any>(null)
@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [strains, setStrains] = useState<any>(null)
   const [sync, setSync] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [uploadStatus, setUploadStatus] = useState<any>(null)
+  const [processing, setProcessing] = useState(false)
 
   const fetchAll = useCallback((silent = false) => {
     if (!silent) setLoading(true)
@@ -26,10 +28,32 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchAll()
-    const handler = () => { if (!document.hidden) fetchAll(true) }
+    uploadPathsApi.status().then(setUploadStatus)
+    const handler = () => { if (!document.hidden) { fetchAll(true); uploadPathsApi.status().then(setUploadStatus) } }
     document.addEventListener('visibilitychange', handler)
     return () => document.removeEventListener('visibilitychange', handler)
   }, [fetchAll])
+
+  const handleProcess = async () => {
+    if (!uploadStatus?.has_uploads || processing) return
+    setProcessing(true)
+    try {
+      const { task_id } = await pipelineApi.run(false, undefined, uploadStatus.ver_path, uploadStatus.hor_path)
+      const pollStart = Date.now()
+      let done = false
+      while (Date.now() - pollStart < 300000) {
+        const st = await pipelineApi.status(task_id)
+        if (st.status === 'success') { done = true; break }
+        if (st.status === 'error') throw new Error(st.error || 'Processing failed')
+        await new Promise(r => setTimeout(r, 2000))
+      }
+      if (!done) throw new Error('Processing timed out after 5 minutes')
+      fetchAll(true)
+    } catch (err: any) {
+      alert(err.message || 'Processing failed')
+    }
+    setProcessing(false)
+  }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
 
@@ -39,9 +63,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-primary">Dashboard</h2>
-        <p className="text-gray-500 text-sm mt-1">NH-71 Instrumented Pavement · IIT Tirupati</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-primary">Dashboard</h2>
+          <p className="text-gray-500 text-sm mt-1">NH-71 Instrumented Pavement · IIT Tirupati</p>
+        </div>
+        {uploadStatus?.has_uploads && !uploadStatus?.has_processed && (
+          <button onClick={handleProcess} disabled={processing}
+            className="btn-primary text-sm flex items-center gap-2">
+            {processing ? (
+              <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Processing...</>
+            ) : 'Process Uploaded Data'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
