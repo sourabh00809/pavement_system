@@ -26,7 +26,7 @@ export default function Upload() {
     addFiles(dropped)
   }
 
-  const classifyFile = (filename: string): 'ver' | 'hor' => {
+  const classifyFile = (filename: string): 'ver' | 'hor' | '' => {
     const lower = filename.toLowerCase()
     if (lower.includes('ver') || lower.includes('vertical')) return 'ver'
     if (lower.includes('hor') || lower.includes('horizontal')) return 'hor'
