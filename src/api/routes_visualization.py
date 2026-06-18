@@ -38,50 +38,42 @@ def _layout(title: str, xlabel: str = "", ylabel: str = "", **kwargs) -> dict:
     )
 
 
-def _get_pipeline_result():
-    if "pipeline" not in _cache:
-        from run_pipeline import run_pipeline
-        _cache["pipeline"] = run_pipeline(demo=True)
-    return _cache["pipeline"]
+def _rangeslider_layout(start: float = 0, end: float = 10) -> dict:
+    return dict(rangeslider=dict(visible=True), range=[start, end])
 
 
-def _get_demo_data():
-    if "demo_data" not in _cache:
-        from run_pipeline import generate_demo_data
-        from src.preprocessing.preprocessing import preprocess_dataframe
-        df_ver, df_hor = generate_demo_data()
-        gauge_types = {}
-        for c in df_ver.columns:
-            gauge_types[c] = "vertical_strain" if int(c[2:]) <= 12 else "horizontal_strain"
-        for c in df_hor.columns:
-            key = f"{c}_hor"
-            idx = int(c[2:])
-            gauge_types[key] = "horizontal_strain" if idx <= 9 else ("temperature" if idx <= 11 else "epc")
-        df_combined = pd.concat([df_ver, df_hor.rename(columns={c: f"{c}_hor" for c in df_hor.columns})], axis=1)
-        strain_cols = [c for c, t in gauge_types.items() if t in ("vertical_strain", "horizontal_strain") and c in df_combined.columns]
-        df_filtered = preprocess_dataframe(df_combined[strain_cols], gauge_types)
-        _cache["demo_data"] = {
-            "df_combined": df_combined,
-            "df_filtered": df_filtered,
-            "gauge_types": gauge_types,
-            "strain_cols": strain_cols,
-        }
-    return _cache["demo_data"]
+def _get_pipeline_data() -> dict:
+    """Unified cache: real data if uploaded, otherwise demo data."""
+    if "pipeline_data" in _cache:
+        return _cache["pipeline_data"]
+    from run_pipeline import run_pipeline
+    result = run_pipeline(demo=True)
+    _cache["pipeline_data"] = result
+    return result
+
+
+def set_pipeline_data(result: dict) -> None:
+    """Store real pipeline results (called by routes_pipeline)."""
+    _cache["pipeline_data"] = result
 
 
 @router.get("/viz/signals")
 async def get_signals(gauge: str = "CH0"):
-    dd = _get_demo_data()
-    df_combined = dd["df_combined"]
-    df_filtered = dd["df_filtered"]
-    strain_cols = dd["strain_cols"]
+    data = _get_pipeline_data()
+    df_combined = data["df_combined"]
+    df_filtered = data["df_filtered"]
+    strain_cols = data["strain_cols"]
+
+    if df_combined.empty:
+        return {"gauge": gauge, "times": [], "raw": [], "filtered": [], "plot_json": None, "total_duration_s": 0}
 
     if gauge not in df_combined.columns:
         gauge = strain_cols[0] if strain_cols else df_combined.columns[0]
 
-    times = df_combined.index[:5000]
-    raw = df_combined[gauge].values[:5000]
-    processed = df_filtered[gauge].values[:5000] if gauge in df_filtered.columns else raw
+    times = df_combined.index.values
+    raw = df_combined[gauge].values
+    processed = df_filtered[gauge].values if gauge in df_filtered.columns else raw
+    total_duration = float(times[-1]) if len(times) > 0 else 0.0
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -95,6 +87,7 @@ async def get_signals(gauge: str = "CH0"):
         hovertemplate="Time: %{x:.3f}s<br>Filtered: %{y:.1f} µε<extra></extra>",
     ))
     fig.update_layout(**_layout(f"{gauge} — Raw vs Filtered", "Time (s)", "Strain (µε)"))
+    fig.update_xaxes(**_rangeslider_layout(0, 10))
 
     return {
         "gauge": gauge,
@@ -102,39 +95,66 @@ async def get_signals(gauge: str = "CH0"):
         "raw": raw.tolist(),
         "filtered": processed.tolist(),
         "plot_json": fig.to_json(),
+        "total_duration_s": total_duration,
+        "window_start": 0.0,
+        "window_end": 10.0,
     }
 
 
 @router.get("/viz/signals/all")
 async def get_all_signals():
-    dd = _get_demo_data()
-    df_filtered = dd["df_filtered"]
-    gauge_types = dd["gauge_types"]
+    data = _get_pipeline_data()
+    df_filtered = data["df_filtered"]
+    gauge_types = data["gauge_types"]
+    has_ver = data["has_ver"]
+    has_hor = data["has_hor"]
 
     ver_cols = [c for c in df_filtered.columns if gauge_types.get(c) == "vertical_strain"]
     hor_cols = [c for c in df_filtered.columns if gauge_types.get(c) == "horizontal_strain"]
 
-    times = df_filtered.index[:3000]
-    fig = go.Figure()
-    for c in hor_cols:
-        fig.add_trace(go.Scatter(x=times, y=df_filtered[c].values[:3000], mode="lines",
-                                 name=f"{c} [H]", line=dict(width=1),
-                                 hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
-    for c in ver_cols:
-        fig.add_trace(go.Scatter(x=times, y=df_filtered[c].values[:3000], mode="lines",
-                                 name=f"{c} [V]", line=dict(width=1),
-                                 hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
-    fig.update_layout(**_layout("All Gauge Signals — First 6s Window", "Time (s)", "Strain (µε)",
-                                 legend=dict(font=dict(size=9))))
-    return {"plot_json": fig.to_json(), "n_gauges": len(df_filtered.columns), "n_horizontal": len(hor_cols), "n_vertical": len(ver_cols)}
+    times = df_filtered.index.values if not df_filtered.empty else []
+    total_duration = float(times[-1]) if len(times) > 0 else 0.0
+
+    fig_ver = go.Figure()
+    if ver_cols and len(times) > 0:
+        for c in ver_cols:
+            fig_ver.add_trace(go.Scatter(x=times, y=df_filtered[c].values, mode="lines",
+                                         name=c, line=dict(width=1),
+                                         hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
+    fig_ver.update_layout(**_layout("Vertical Strain Channels", "Time (s)", "Strain (µε)",
+                                     legend=dict(font=dict(size=9))))
+    if len(times) > 0:
+        fig_ver.update_xaxes(**_rangeslider_layout(0, 10))
+
+    fig_hor = go.Figure()
+    if hor_cols and len(times) > 0:
+        for c in hor_cols:
+            fig_hor.add_trace(go.Scatter(x=times, y=df_filtered[c].values, mode="lines",
+                                         name=c, line=dict(width=1),
+                                         hovertemplate="Time: %{x:.3f}s<br>%{c}: %{y:.1f} µε<extra></extra>"))
+    fig_hor.update_layout(**_layout("Horizontal Strain Channels", "Time (s)", "Strain (µε)",
+                                     legend=dict(font=dict(size=9))))
+    if len(times) > 0:
+        fig_hor.update_xaxes(**_rangeslider_layout(0, 10))
+
+    return {
+        "plot_json_ver": fig_ver.to_json(),
+        "plot_json_hor": fig_hor.to_json(),
+        "n_gauges": len(df_filtered.columns),
+        "n_horizontal": len(hor_cols),
+        "n_vertical": len(ver_cols),
+        "has_vertical": has_ver and len(ver_cols) > 0,
+        "has_horizontal": has_hor and len(hor_cols) > 0,
+        "total_duration_s": total_duration,
+    }
 
 
 @router.get("/viz/health")
 async def get_health():
     try:
         from src.sensor_health.sensor_health import assess_all_gauges
-        dd = _get_demo_data()
-        df_filtered = dd["df_filtered"]
+        data = _get_pipeline_data()
+        df_filtered = data["df_filtered"]
         health_map = assess_all_gauges(df_filtered)
         gauges_data = [gh.to_dict() for gh in health_map.values()]
     except Exception as e:
@@ -169,7 +189,7 @@ async def get_health():
 
 @router.get("/viz/events")
 async def get_events():
-    result = _get_pipeline_result()
+    result = _get_pipeline_data()
     event_df = result["event_df"]
 
     events_summary = []
@@ -220,7 +240,7 @@ async def get_events():
 
 @router.get("/viz/sync")
 async def get_sync_matrix():
-    result = _get_pipeline_result()
+    result = _get_pipeline_data()
     bundles = result["synced_bundles"]
     health_map = result["health_map"]
     gauges = list(health_map.keys())
@@ -257,7 +277,7 @@ async def get_sync_matrix():
 
 @router.get("/viz/life")
 async def get_life_plot():
-    result = _get_pipeline_result()
+    result = _get_pipeline_data()
     life = result["life_result"]
     uncertainty = result["uncertainty"]
 
@@ -300,13 +320,14 @@ async def get_life_plot():
 
 @router.get("/viz/strains")
 async def get_strains():
-    result = _get_pipeline_result()
-    dd = _get_demo_data()
-    df_filtered = dd["df_filtered"]
-    gauge_types = dd["gauge_types"]
-    health_map = result["health_map"]
-    eps_t = result["rep_eps_t"]
-    eps_v = result["rep_eps_v"]
+    data = _get_pipeline_data()
+    df_filtered = data.get("df_filtered", pd.DataFrame())
+    gauge_types = data.get("gauge_types", {})
+    health_map = data.get("health_map", {})
+    eps_t = data.get("rep_eps_t", 0.0)
+    eps_v = data.get("rep_eps_v", 0.0)
+    has_ver = data.get("has_ver", False)
+    has_hor = data.get("has_hor", False)
 
     per_gauge = []
     for gauge in df_filtered.columns:
@@ -324,7 +345,7 @@ async def get_strains():
             "excluded": gh.excluded,
         })
 
-    # per-gauge bar chart
+    # per-gauge bar chart — separate traces for VER and HOR
     fig = go.Figure()
     hor_gauges = [g for g in per_gauge if g["type"] == "horizontal_strain"]
     ver_gauges = [g for g in per_gauge if g["type"] == "vertical_strain"]
@@ -341,9 +362,9 @@ async def get_strains():
     fig.update_layout(**_layout("Per-Gauge Peak Strain by Type", "Gauge", "Peak Strain (µε)",
                                  barmode="group"))
 
-    # collective strain histogram across bundles
+    # collective strain distribution across bundles
     bundle_strains_t, bundle_strains_v = [], []
-    for bundle in result["synced_bundles"][:100]:
+    for bundle in data.get("synced_bundles", [])[:100]:
         from src.feature_engineering.feature_engineering import estimate_collective_strain
         t_start = bundle.representative_time - 0.5
         t_end = bundle.representative_time + 1.5
@@ -373,6 +394,8 @@ async def get_strains():
         "n_gauges": len(per_gauge),
         "n_horizontal": len(hor_gauges),
         "n_vertical": len(ver_gauges),
+        "has_vertical": has_ver and len(ver_gauges) > 0,
+        "has_horizontal": has_hor and len(hor_gauges) > 0,
         "plot_json": fig.to_json(),
         "plot_json2": fig2.to_json(),
     }
@@ -380,15 +403,29 @@ async def get_strains():
 
 @router.get("/viz/temperature")
 async def get_temperature(offset_ch10: float = 0, offset_ch11: float = 0):
-    dd = _get_demo_data()
-    df_combined = dd["df_combined"]
+    data = _get_pipeline_data()
+    df_combined = data["df_combined"]
+    has_hor = data.get("has_hor", False)
 
     ch10 = "CH10_hor"
     ch11 = "CH11_hor"
+    has_temp = has_hor and ch10 in df_combined.columns
 
-    times = df_combined.index[:5000].tolist()
-    raw_ch10 = df_combined[ch10].values[:5000].tolist() if ch10 in df_combined.columns else []
-    raw_ch11 = df_combined[ch11].values[:5000].tolist() if ch11 in df_combined.columns else []
+    if not has_temp:
+        return {
+            "ch10_raw": [], "ch10_calibrated": [],
+            "ch11_raw": [], "ch11_calibrated": [],
+            "times": [], "stats": {},
+            "offset_ch10": 0, "offset_ch11": 0,
+            "plot_json": None,
+            "has_temperature": False,
+            "total_duration_s": 0,
+        }
+
+    times = df_combined.index.tolist()
+    raw_ch10 = df_combined[ch10].values.tolist()
+    raw_ch11 = df_combined[ch11].values.tolist() if ch11 in df_combined.columns else []
+    total_duration = float(times[-1]) if times else 0.0
 
     cal_ch10 = [v + offset_ch10 for v in raw_ch10] if raw_ch10 else []
     cal_ch11 = [v + offset_ch11 for v in raw_ch11] if raw_ch11 else []
@@ -409,6 +446,7 @@ async def get_temperature(offset_ch10: float = 0, offset_ch11: float = 0):
                                  name="CH11 Calibrated", line=dict(color=THEME["primary"], width=1.5, dash="dot"),
                                  hovertemplate="Time: %{x:.3f}s<br>Cal: %{y:.1f} °C<extra></extra>"))
     fig.update_layout(**_layout("Temperature Channels — Raw vs Calibrated", "Time (s)", "Temperature (°C)"))
+    fig.update_xaxes(**_rangeslider_layout(0, 10))
 
     stats = {}
     for label, raw in [("CH10", raw_ch10), ("CH11", raw_ch11)]:
@@ -429,10 +467,14 @@ async def get_temperature(offset_ch10: float = 0, offset_ch11: float = 0):
         "offset_ch10": offset_ch10,
         "offset_ch11": offset_ch11,
         "plot_json": fig.to_json(),
+        "has_temperature": True,
+        "total_duration_s": total_duration,
+        "window_start": 0.0,
+        "window_end": 10.0,
     }
 
 
 @router.post("/refresh")
 async def refresh_cache():
     _cache.clear()
-    return {"status": "cache cleared"}
+    return {"status": "cache cleared", "message": "Next viz request will re-run pipeline"}

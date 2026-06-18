@@ -49,6 +49,10 @@ async def run_pipeline_endpoint(req: PipelineRequest):
             hor_path=req.hor_path or None,
             demo=req.demo,
         )
+        # Store in visualization cache so viz endpoints pick up real data
+        from src.api.routes_visualization import set_pipeline_data
+        set_pipeline_data(result)
+
         life = result["life_result"]
         return {
             "status": "success",

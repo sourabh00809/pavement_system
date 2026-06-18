@@ -55,11 +55,29 @@ export default function Temperature() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
 
+  if (raw && raw.has_temperature === false) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-primary">Temperature Monitoring</h2>
+          <p className="text-gray-500 text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
+        </div>
+        <div className="card text-gray-400 text-center py-16 border-dashed border-2 border-gray-200">
+          <p className="text-sm">No temperature data available</p>
+          <p className="text-xs mt-1">Temperature channels (CH10, CH11) are only present in HOR files</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Temperature Monitoring</h2>
         <p className="text-gray-500 text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
+        {raw?.total_duration_s && (
+          <p className="text-xs text-gray-400 mt-1">Full duration: {raw.total_duration_s.toFixed(1)}s · Drag the slider at the bottom to scroll</p>
+        )}
       </div>
 
       <div className="card overflow-hidden">
@@ -67,7 +85,7 @@ export default function Temperature() {
           data={plotData}
           layout={{
             title: { text: 'Temperature Channels — Raw vs Calibrated', font: { size: 14, color: THEME.primary } },
-            xaxis: { title: 'Time (s)', gridcolor: '#eee', zerolinecolor: '#ddd' },
+            xaxis: { title: 'Time (s)', gridcolor: '#eee', zerolinecolor: '#ddd', rangeslider: { visible: true }, range: [0, 10] },
             yaxis: { title: 'Temperature (°C)', gridcolor: '#eee', zerolinecolor: '#ddd' },
             plot_bgcolor: THEME.card, paper_bgcolor: THEME.bg,
             font: { family: 'Inter, sans-serif', color: THEME.text },

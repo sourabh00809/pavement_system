@@ -44,12 +44,32 @@ export default function Signals() {
           </select>
         )}
         {mode === 'all' && allData && (
-          <span className="text-xs text-gray-400">{allData.n_horizontal} horizontal · {allData.n_vertical} vertical · {allData.n_gauges} total</span>
+          <span className="text-xs text-gray-400">{allData.n_horizontal} horizontal · {allData.n_vertical} vertical · {allData.n_gauges} total · {allData.total_duration_s?.toFixed(1)}s duration</span>
         )}
       </div>
 
-      {mode === 'all' && allData?.plot_json && (
-        <InteractivePlot plotJson={allData.plot_json} />
+      {mode === 'all' && (
+        <div className="space-y-6">
+          {allData?.has_vertical && allData?.plot_json_ver ? (
+            <InteractivePlot plotJson={allData.plot_json_ver} title="Vertical Strain Channels" />
+          ) : (
+            <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
+              <p className="text-sm">No vertical strain data available</p>
+              <p className="text-xs mt-1">Upload a VER file to see vertical channels</p>
+            </div>
+          )}
+          {allData?.has_horizontal && allData?.plot_json_hor ? (
+            <InteractivePlot plotJson={allData.plot_json_hor} title="Horizontal Strain Channels" />
+          ) : (
+            <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
+              <p className="text-sm">No horizontal strain data available</p>
+              <p className="text-xs mt-1">Upload a HOR file to see horizontal channels</p>
+            </div>
+          )}
+          {(!allData?.has_vertical && !allData?.has_horizontal) && (
+            <InteractivePlot plotJson={allData?.plot_json_ver} />
+          )}
+        </div>
       )}
 
       {mode === 'single' && singleData && (

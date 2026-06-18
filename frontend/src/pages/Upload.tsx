@@ -1,31 +1,80 @@
 import { useState } from 'react'
-import { uploadApi } from '../api/client'
+import { useNavigate } from 'react-router-dom'
+import { uploadApi, pipelineApi } from '../api/client'
+
+interface FileEntry {
+  file: File
+  type: 'ver' | 'hor' | ''
+}
 
 export default function Upload() {
-  const [files, setFiles] = useState<File[]>([])
+  const navigate = useNavigate()
+  const [entries, setEntries] = useState<FileEntry[]>([])
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [dragging, setDragging] = useState(false)
+
+  const addFiles = (incoming: File[]) => {
+    const newEntries = incoming.map(f => ({ file: f, type: '' as 'ver' | 'hor' | '' }))
+    setEntries(prev => [...prev, ...newEntries])
+  }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragging(false)
     const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.xls') || f.name.endsWith('.xlsx') || f.name.endsWith('.csv'))
-    setFiles(prev => [...prev, ...dropped])
+    addFiles(dropped)
   }
 
-  const handleUpload = async () => {
-    if (files.length === 0) return
+  const classifyFile = (filename: string): 'ver' | 'hor' => {
+    const lower = filename.toLowerCase()
+    if (lower.includes('ver') || lower.includes('vertical')) return 'ver'
+    if (lower.includes('hor') || lower.includes('horizontal')) return 'hor'
+    return ''
+  }
+
+  const handleProcess = async () => {
+    const toUpload = entries.filter(e => e.type !== '')
+    if (toUpload.length === 0) return
+
     setUploading(true)
     setResult(null)
+
     try {
-      const results = await Promise.all(files.map(f => uploadApi(f)))
-      setResult({ success: true, files: results })
+      // First upload all files
+      const uploadResults = await Promise.all(toUpload.map(e => uploadApi(e.file)))
+
+      // Determine ver_path and hor_path from upload results
+      let verPath: string | undefined
+      let horPath: string | undefined
+
+      toUpload.forEach((e, i) => {
+        if (e.type === 'ver') verPath = uploadResults[i].path
+        if (e.type === 'hor') horPath = uploadResults[i].path
+      })
+
+      // Run pipeline with the uploaded files
+      const pipelineResult = await pipelineApi.run(false, verPath, horPath)
+
+      setResult({
+        success: true,
+        pipeline: pipelineResult,
+        files: uploadResults,
+        verPath,
+        horPath,
+      })
     } catch (err: any) {
       setResult({ success: false, error: err.message })
     }
+
     setUploading(false)
   }
+
+  const setType = (index: number, type: 'ver' | 'hor') => {
+    setEntries(prev => prev.map((e, i) => i === index ? { ...e, type } : e))
+  }
+
+  const canProcess = entries.some(e => e.type !== '') && !uploading
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -47,52 +96,81 @@ export default function Upload() {
         <p className="text-xs text-gray-400 mb-4">or</p>
         <label className="btn-primary cursor-pointer inline-block">
           Browse Files
-          <input type="file" multiple accept=".xls,.xlsx,.csv" className="hidden" onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+          <input type="file" multiple accept=".xls,.xlsx,.csv" className="hidden" onChange={e => addFiles(Array.from(e.target.files || []))} />
         </label>
       </div>
 
-      {files.length > 0 && (
+      {entries.length > 0 && (
         <div className="card">
-          <h3 className="card-title">Selected Files ({files.length})</h3>
+          <h3 className="card-title">Selected Files ({entries.length})</h3>
           <div className="space-y-2">
-            {files.map((f, i) => (
+            {entries.map((e, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="text-sm">{f.name}</span>
-                  <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(1)} KB</span>
+                  <span className="text-sm">{e.file.name}</span>
+                  <span className="text-xs text-gray-400">{(e.file.size / 1024).toFixed(1)} KB</span>
                 </div>
-                <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-danger hover:text-red-700 text-sm">Remove</button>
+                <div className="flex items-center gap-2">
+                  <select value={e.type} onChange={e => setType(i, e.target.value as 'ver' | 'hor')}
+                    className="text-xs border border-gray-200 rounded px-2 py-1">
+                    <option value="">— Select type —</option>
+                    <option value="ver">VER (Vertical)</option>
+                    <option value="hor">HOR (Horizontal)</option>
+                  </select>
+                  <button onClick={() => setEntries(entries.filter((_, j) => j !== i))} className="text-danger hover:text-red-700 text-sm">Remove</button>
+                </div>
               </div>
             ))}
           </div>
           <div className="mt-4 flex gap-3">
-            <button onClick={handleUpload} disabled={uploading} className="btn-primary">
+            <button onClick={handleProcess} disabled={!canProcess} className="btn-primary">
               {uploading ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                  Uploading...
+                  Processing...
                 </span>
               ) : 'Upload & Process'}
             </button>
-            <button onClick={() => setFiles([])} className="btn-secondary bg-gray-100 text-gray-600 hover:bg-gray-200">Clear All</button>
+            <button onClick={() => setEntries([])} className="btn-secondary bg-gray-100 text-gray-600 hover:bg-gray-200">Clear All</button>
           </div>
+          {entries.some(e => e.type === '') && (
+            <p className="text-xs text-amber-600 mt-2">Please assign a type (VER/HOR) to each file before processing</p>
+          )}
         </div>
       )}
 
       {result && (
         <div className={`card ${result.success ? 'border-green-200' : 'border-red-200'}`}>
           <h3 className={`card-title ${result.success ? 'text-success' : 'text-danger'}`}>
-            {result.success ? 'Upload Successful' : 'Upload Failed'}
+            {result.success ? 'Pipeline Complete' : 'Processing Failed'}
           </h3>
           {result.success ? (
-            <ul className="text-sm text-gray-600 space-y-1">
-              {result.files.map((f: any, i: number) => (
-                <li key={i}>{f.filename} — {f.size} bytes</li>
-              ))}
-            </ul>
+            <div className="text-sm text-gray-600 space-y-2">
+              <p>Uploaded files:</p>
+              <ul className="space-y-1">
+                {result.files.map((f: any, i: number) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                    {f.filename}
+                  </li>
+                ))}
+              </ul>
+              {result.pipeline && (
+                <div className="mt-3 p-3 bg-green-50 rounded text-xs">
+                  <p>Nf (fatigue): {result.pipeline.life_result?.Nf}</p>
+                  <p>Nr (rutting): {result.pipeline.life_result?.Nr}</p>
+                  <p>Events detected: {result.pipeline.n_events}</p>
+                  <p>Healthy gauges: {result.pipeline.n_healthy_gauges}</p>
+                </div>
+              )}
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => navigate('/signals')} className="btn-primary text-sm">View Signals</button>
+                <button onClick={() => navigate('/')} className="btn-secondary text-sm">Go to Dashboard</button>
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-danger">{result.error}</p>
           )}
@@ -101,7 +179,10 @@ export default function Upload() {
 
       <div className="card bg-blue-50 border-blue-100">
         <h3 className="card-title text-sm text-primary">Using Demo Data</h3>
-        <p className="text-xs text-gray-600">No files? Navigate to other pages — demo data is used automatically for all visualizations and predictions.</p>
+        <p className="text-xs text-gray-600">
+          No files to upload? Navigate to any page — demo data is used automatically.
+          To switch back to demo after uploading, use the "Refresh Pipeline Data" button on the Export page.
+        </p>
       </div>
     </div>
   )
