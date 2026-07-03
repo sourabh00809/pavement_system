@@ -1,12 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
 import MetricCard from '../components/MetricCard'
 import InteractivePlot from '../components/InteractivePlot'
 import { vizApi, pipelineApi, uploadPathsApi } from '../api/client'
 
 export default function Dashboard() {
-  const location = useLocation()
-  const autoProcess = (location.state as any)?.autoProcess
   const [life, setLife] = useState<any>(null)
   const [health, setHealth] = useState<any>(null)
   const [events, setEvents] = useState<any>(null)
@@ -15,7 +12,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [uploadStatus, setUploadStatus] = useState<any>(null)
   const [processing, setProcessing] = useState(false)
-  const autoProcessed = useRef(false)
 
   // Read pending files from sessionStorage (set by Upload page)
   const pendingRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingUploadFiles') : null
@@ -60,14 +56,6 @@ export default function Dashboard() {
     document.addEventListener('visibilitychange', handler)
     return () => document.removeEventListener('visibilitychange', handler)
   }, [fetchAll])
-
-  // Auto-process when navigating from Upload with autoProcess flag
-  useEffect(() => {
-    if (autoProcess && effectiveUploadStatus?.has_uploads && !autoProcessed.current) {
-      autoProcessed.current = true
-      handleProcess()
-    }
-  }, [])
 
   const handleProcess = async () => {
     if (!effectiveUploadStatus?.has_uploads || processing) return

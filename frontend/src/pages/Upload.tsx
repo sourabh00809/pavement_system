@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { uploadApi, uploadPathsApi } from '../api/client'
+import { uploadApi, uploadPathsApi, pipelineApi } from '../api/client'
 
 export default function Upload() {
   const navigate = useNavigate()
   const [files, setFiles] = useState<{ file: File; type: 'VER' | 'HOR' }[]>([])
   const [uploading, setUploading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [statusMsg, setStatusMsg] = useState('')
   const [error, setError] = useState('')
   const [dragging, setDragging] = useState(false)
 
   const addFiles = (incoming: File[]) => {
     setFiles(prev => [...prev, ...incoming.map(f => ({ file: f, type: 'VER' as 'VER' | 'HOR' }))])
-    setDone(false)
     setError('')
   }
 
@@ -31,9 +31,28 @@ export default function Upload() {
       const typedFiles = results.map((r, i) => ({ path: r.path, type: files[i].type }))
       await uploadPathsApi.save(typedFiles)
       sessionStorage.setItem('pendingUploadFiles', JSON.stringify(typedFiles))
-      setDone(true)
+
+      // Start pipeline processing immediately
+      setStatusMsg('Processing data...')
+      setProcessing(true)
+      const { task_id } = await pipelineApi.run(typedFiles)
+      const pollStart = Date.now()
+      let donePoll = false
+      while (Date.now() - pollStart < 300000) {
+        setStatusMsg(`Processing... (${Math.round((Date.now() - pollStart) / 1000)}s)`)
+        const st = await pipelineApi.status(task_id)
+        if (st.status === 'success') { donePoll = true; break }
+        if (st.status === 'error') throw new Error(st.error || 'Pipeline failed')
+        await new Promise(r => setTimeout(r, 2000))
+      }
+      if (!donePoll) throw new Error('Processing timed out after 5 minutes')
+      sessionStorage.removeItem('pendingUploadFiles')
+
+      setStatusMsg('Done! Loading results...')
+      setTimeout(() => navigate('/strains'), 500)
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.response?.data?.message || err.message)
+      setError(err.message || 'Processing failed')
+      setProcessing(false)
     }
     setUploading(false)
   }
@@ -69,7 +88,7 @@ export default function Upload() {
         </label>
       </div>
 
-      {(files.length > 0 && !done) && (
+      {(files.length > 0 && !uploading && !processing) && (
         <div className="card">
           <h3 className="card-title">Selected Files ({files.length})</h3>
 
@@ -128,26 +147,27 @@ export default function Upload() {
           )}
 
           <div className="mt-4 flex gap-3">
-            <button onClick={handleUpload} disabled={uploading} className="btn-primary">
-              {uploading ? 'Uploading...' : `Upload Files (${verFiles.length} VER, ${horFiles.length} HOR)`}
+            <button onClick={handleUpload} disabled={uploading || processing} className="btn-primary">
+              {uploading ? 'Uploading...' : processing ? 'Processing...' : `Upload & Process (${verFiles.length} VER, ${horFiles.length} HOR)`}
             </button>
-            <button onClick={() => { setFiles([]); setDone(false); setError('') }}
+            <button onClick={() => { setFiles([]); setError('') }}
               className="btn-secondary bg-gray-100 text-gray-600 hover:bg-gray-200">Clear</button>
           </div>
         </div>
       )}
 
-      {done && (
+      {(uploading || processing) && (
         <div className="card border-green-200">
-          <h3 className="card-title text-success">Files Uploaded</h3>
-          <p className="text-sm text-gray-600 mb-3">{files.length} file(s) saved.</p>
+          <h3 className="card-title text-success">
+            {uploading ? 'Uploading Files...' : 'Processing Data...'}
+          </h3>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+            <p className="text-sm text-gray-600">{statusMsg || 'Working...'}</p>
+          </div>
           <div className="space-y-1 mb-3">
             <p className="text-xs text-gray-500">VER files: {verFiles.length} ({verFiles.map(f => f.file.name).join(', ')})</p>
             <p className="text-xs text-gray-500">HOR files: {horFiles.length} ({horFiles.map(f => f.file.name).join(', ')})</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => navigate('/', { state: { autoProcess: true } })} className="btn-primary text-sm">Process & View Results</button>
-            <button onClick={() => { setFiles([]); setDone(false) }} className="btn-secondary text-sm">Upload More</button>
           </div>
         </div>
       )}
