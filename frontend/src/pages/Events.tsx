@@ -18,8 +18,8 @@ export default function Events() {
   const eventsHor = data?.events_hor || []
 
   const handleExport = () => {
-    exportApi.results().then(blob => {
-      const url = window.URL.createObjectURL(blob)
+    exportApi.results().then(res => {
+      const url = window.URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url; a.download = 'results.xlsx'; a.click()
       window.URL.revokeObjectURL(url)

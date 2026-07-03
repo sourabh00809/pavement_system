@@ -74,7 +74,7 @@ export default function ExportPage() {
         <button onClick={async () => {
           try {
             const { pipelineApi, vizApi } = await import('../api/client')
-            const res = await pipelineApi.run(true)
+            const res = await pipelineApi.run([])
             await vizApi.refresh()
             alert(`Pipeline refreshed!\nNf: ${res.life_result?.Nf}\nNr: ${res.life_result?.Nr}\nEvents: ${res.n_events}`)
           } catch (e: any) {

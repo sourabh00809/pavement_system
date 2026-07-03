@@ -52,7 +52,7 @@ export default function Dashboard() {
       }
       if (!done) throw new Error('Processing timed out after 5 minutes')
       fetchAll(true)
-      setUploadStatus(prev => ({ ...prev, has_processed: true }))
+      setUploadStatus((prev: any) => ({ ...prev, has_processed: true }))
     } catch (err: any) {
       alert(err.message || 'Processing failed')
     }
