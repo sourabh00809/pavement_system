@@ -32,12 +32,21 @@ filtering:
   drift_cutoff: 0.01       # Hz — for drift/DC removal
   temp_cutoff: 0.001       # Hz — for temperature channels
 
-event_detection:
-  threshold_factor: 2.0          # × RMS of baseline noise
-  min_peak_distance_samples: 25  # 50 ms at 500 Hz
-  min_prominence_microstrain: 5  # µε
+event_detection_ver:
+  threshold_factor: 2.5          # × RMS of baseline noise
+  min_peak_distance_samples: 25  # samples
+  min_prominence_microstrain: 8  # µε — vertical strain has higher amplitude
   axle_grouping_window: 0.5      # seconds
   vehicle_grouping_window: 3.0   # seconds
+  min_axles: 2
+  max_axles: 5
+
+event_detection_hor:
+  threshold_factor: 2.0          # × RMS of baseline noise
+  min_peak_distance_samples: 30  # samples
+  min_prominence_microstrain: 5  # µε — horizontal strain lower amplitude
+  axle_grouping_window: 0.6      # seconds
+  vehicle_grouping_window: 3.5   # seconds
   min_axles: 2
   max_axles: 5
 

@@ -1,7 +1,7 @@
 """
 Module D — Vehicle Event Detection
 Adaptive peak detection, axle grouping, vehicle event extraction.
-Parameters tuned for NH-71 highway data at 500 Hz.
+Supports type-specific config: event_detection_ver / event_detection_hor.
 """
 from __future__ import annotations
 import numpy as np
@@ -12,8 +12,15 @@ from src.utils.config import load_config, get_logger
 
 log = get_logger(__name__)
 CFG = load_config()
-ED = CFG["event_detection"]
 FS = CFG["daq"]["sampling_rate"]
+
+
+def _get_ed_config(config_prefix: str = "event_detection_ver") -> dict:
+    """Load the right event detection config block."""
+    if config_prefix in CFG:
+        return CFG[config_prefix]
+    # fallback
+    return CFG.get("event_detection_ver", {})
 
 
 @dataclass
@@ -31,7 +38,7 @@ class VehicleEvent:
     end_time: float
     axle_count: int
     axles: list[AxleEvent]
-    vehicle_type_estimate: int   # number of axles → IRC class
+    vehicle_type_estimate: int
     peak_strains: list[float] = field(default_factory=list)
     max_strain: float = 0.0
     mean_strain: float = 0.0
@@ -53,24 +60,20 @@ class VehicleEvent:
 
 
 def compute_adaptive_threshold(data: np.ndarray, fs: float = FS,
-                                baseline_window_s: float = 5.0,
-                                factor: float = ED["threshold_factor"]) -> float:
-    """
-    Compute adaptive detection threshold = factor × RMS of quiet baseline window.
-    Uses start of signal as baseline (assumed vehicle-free).
-    """
+                                config_prefix: str = "event_detection_ver") -> float:
+    ED = _get_ed_config(config_prefix)
+    baseline_window_s = 5.0
+    factor = ED["threshold_factor"]
     n_baseline = int(baseline_window_s * fs)
     baseline = data[:n_baseline]
     rms = np.sqrt(np.mean(baseline ** 2))
     return max(factor * rms, ED["min_prominence_microstrain"])
 
 
-def detect_peaks(data: np.ndarray, fs: float = FS) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Detect strain peaks in preprocessed gauge signal.
-    Returns (peak_indices, peak_heights).
-    """
-    threshold = compute_adaptive_threshold(data, fs)
+def detect_peaks(data: np.ndarray, fs: float = FS,
+                 config_prefix: str = "event_detection_ver") -> tuple[np.ndarray, np.ndarray]:
+    ED = _get_ed_config(config_prefix)
+    threshold = compute_adaptive_threshold(data, fs, config_prefix)
     distance = ED["min_peak_distance_samples"]
     prominence = ED["min_prominence_microstrain"]
 
@@ -85,18 +88,14 @@ def detect_peaks(data: np.ndarray, fs: float = FS) -> tuple[np.ndarray, np.ndarr
 
 
 def group_axles(peaks: np.ndarray, times: np.ndarray,
-                axle_window: float = ED["axle_grouping_window"],
-                vehicle_window: float = ED["vehicle_grouping_window"]) -> list[list[int]]:
-    """
-    Group detected peaks into vehicle events.
-    1. Peaks within axle_window → same axle cluster
-    2. Clusters within vehicle_window → same vehicle
-    Returns list of peak index lists, one list per vehicle.
-    """
+                config_prefix: str = "event_detection_ver") -> list[list[int]]:
+    ED = _get_ed_config(config_prefix)
+    axle_window = ED["axle_grouping_window"]
+    vehicle_window = ED["vehicle_grouping_window"]
+
     if len(peaks) == 0:
         return []
 
-    # Step 1: merge closely spaced peaks into axle clusters
     axle_groups = []
     current = [peaks[0]]
     for i in range(1, len(peaks)):
@@ -108,11 +107,9 @@ def group_axles(peaks: np.ndarray, times: np.ndarray,
             current = [peaks[i]]
     axle_groups.append(current)
 
-    # Step 2: merge axle clusters into vehicles
     vehicles = []
     current_vehicle = [axle_groups[0]]
     for i in range(1, len(axle_groups)):
-        # Time between last peak of previous cluster and first of current
         last_t = times[axle_groups[i - 1][-1]]
         next_t = times[axle_groups[i][0]]
         if next_t - last_t <= vehicle_window:
@@ -122,26 +119,23 @@ def group_axles(peaks: np.ndarray, times: np.ndarray,
             current_vehicle = [axle_groups[i]]
     vehicles.append(current_vehicle)
 
-    # Flatten: vehicle → flat list of peak indices
     return [[p for axle in v for p in axle] for v in vehicles]
 
 
 def extract_events(gauge_data: pd.Series, gauge_id: str,
                    fs: float = FS,
-                   vehicle_id_start: int = 0) -> list[VehicleEvent]:
-    """
-    Full event extraction pipeline for one gauge.
-    Returns list of VehicleEvent objects.
-    """
+                   vehicle_id_start: int = 0,
+                   config_prefix: str = "event_detection_ver") -> list[VehicleEvent]:
+    ED = _get_ed_config(config_prefix)
     data = gauge_data.values.astype(float)
     times = gauge_data.index.values.astype(float)
 
-    peaks, heights = detect_peaks(data, fs)
+    peaks, heights = detect_peaks(data, fs, config_prefix)
     if len(peaks) == 0:
-        log.debug(f"No peaks detected in gauge {gauge_id}")
+        log.debug(f"No peaks detected in gauge {gauge_id} ({config_prefix})")
         return []
 
-    vehicle_peak_groups = group_axles(peaks, times)
+    vehicle_peak_groups = group_axles(peaks, times, config_prefix)
 
     events = []
     for vid_offset, peak_group in enumerate(vehicle_peak_groups):
@@ -179,12 +173,10 @@ def extract_events(gauge_data: pd.Series, gauge_id: str,
                 duration_s=et - st,
             )
 
-        # Estimate axle count first
         unique_times = sorted(set(round(a.time_s, 2) for a in axles))
         axle_count = max(1, len(unique_times))
 
         if axle_count < ED["min_axles"] and events:
-            # Merge with last event
             last = events[-1]
             last.axles.extend(axles)
             last.peak_strains = [a.peak_strain for a in last.axles]
@@ -200,7 +192,6 @@ def extract_events(gauge_data: pd.Series, gauge_id: str,
             continue
 
         if axle_count > ED["max_axles"]:
-            # Split into two vehicles
             mid = len(axles) // 2
             first = _make_event(axles[:mid], len(events))
             second = _make_event(axles[mid:], len(events) + 1)
@@ -213,28 +204,27 @@ def extract_events(gauge_data: pd.Series, gauge_id: str,
             if ev:
                 events.append(ev)
 
-    log.info(f"Gauge {gauge_id}: {len(events)} vehicle events detected")
+    log.info(f"Gauge {gauge_id} ({config_prefix}): {len(events)} vehicle events detected")
     return events
 
 
 def extract_all_events(df: pd.DataFrame,
-                       healthy_gauges: list[str]) -> dict[str, list[VehicleEvent]]:
-    """Extract events from all healthy gauges."""
+                       healthy_gauges: list[str],
+                       config_prefix: str = "event_detection_ver") -> dict[str, list[VehicleEvent]]:
     all_events = {}
     vid_counter = 0
     for gauge in healthy_gauges:
         if gauge not in df.columns:
             continue
-        events = extract_events(df[gauge], gauge, vehicle_id_start=vid_counter)
+        events = extract_events(df[gauge], gauge, vehicle_id_start=vid_counter, config_prefix=config_prefix)
         all_events[gauge] = events
         vid_counter += len(events)
     total = sum(len(v) for v in all_events.values())
-    log.info(f"Total vehicle events detected across {len(healthy_gauges)} gauges: {total}")
+    log.info(f"Total vehicle events detected ({config_prefix}): {total}")
     return all_events
 
 
 def events_to_dataframe(all_events: dict[str, list[VehicleEvent]]) -> pd.DataFrame:
-    """Convert all events to a flat DataFrame for storage/analysis."""
     rows = []
     for gauge, events in all_events.items():
         for e in events:

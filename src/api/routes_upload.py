@@ -12,8 +12,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class UploadPathsRequest(BaseModel):
-    ver_path: str | None = None
-    hor_path: str | None = None
+    files: list[dict] = []  # [{"path": "...", "type": "VER"}, ...]
 
 
 @router.post("/upload")
@@ -31,9 +30,9 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.post("/upload/paths")
 async def save_upload_paths(req: UploadPathsRequest):
-    from src.api.routes_visualization import set_uploaded_paths
-    set_uploaded_paths(ver_path=req.ver_path, hor_path=req.hor_path)
-    return {"status": "ok"}
+    from src.api.routes_visualization import set_uploaded_files
+    set_uploaded_files(req.files)
+    return {"status": "ok", "n_files": len(req.files)}
 
 
 @router.get("/upload/paths")
