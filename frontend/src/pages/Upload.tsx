@@ -146,7 +146,7 @@ export default function Upload() {
             <p className="text-xs text-gray-500">HOR files: {horFiles.length} ({horFiles.map(f => f.file.name).join(', ')})</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => navigate('/')} className="btn-primary text-sm">Go to Dashboard & Process</button>
+            <button onClick={() => navigate('/', { state: { autoProcess: true } })} className="btn-primary text-sm">Process & View Results</button>
             <button onClick={() => { setFiles([]); setDone(false) }} className="btn-secondary text-sm">Upload More</button>
           </div>
         </div>
