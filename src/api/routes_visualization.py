@@ -362,7 +362,7 @@ async def get_strains():
     data = _get_pipeline_data()
 
     per_gauge_all = []
-    fig = go.Figure()
+    figs = {}
 
     for gname in ("VER", "HOR"):
         grp = data.get(gname, {})
@@ -383,16 +383,19 @@ async def get_strains():
                 "excluded": row["excluded"],
             })
         color = THEME["secondary"] if gname == "VER" else THEME["accent"]
-        fig.add_trace(go.Bar(name=gname, x=list(pg["gauge_id"]), y=list(pg["peak_strain_microstrain"]),
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=list(pg["gauge_id"]), y=list(pg["peak_strain_microstrain"]),
                              marker_color=color,
-                             hovertemplate=f"Gauge: %{{x}}<br>Peak: %{{y:.1f}} µε<br>{gname}<extra></extra>"))
-
-    fig.update_layout(**_layout("Per-Gauge Peak Strain by Type", "Gauge", "Peak Strain (µε)", barmode="group"))
+                             hovertemplate=f"Gauge: %{{x}}<br>Peak: %{{y:.1f}} µε<extra></extra>"))
+        fig.update_layout(**_layout(f"{gname} — Peak Strain", "Gauge", "Peak Strain (µε)"))
+        figs[gname.lower()] = fig.to_json()
 
     return {
         "per_gauge": per_gauge_all,
         "n_gauges": len(per_gauge_all),
-        "plot_json": fig.to_json(),
+        "plot_json_ver": figs.get("ver"),
+        "plot_json_hor": figs.get("hor"),
+        "plot_json": figs.get("ver") or figs.get("hor"),
     }
 
 
