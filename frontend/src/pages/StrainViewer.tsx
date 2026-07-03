@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import InteractivePlot from '../components/InteractivePlot'
 import MetricCard from '../components/MetricCard'
-import { vizApi, pipelineApi, exportApi } from '../api/client'
+import { vizApi, exportApi } from '../api/client'
 
 interface GaugeRow {
   gauge: string
@@ -16,51 +16,15 @@ interface GaugeRow {
 export default function StrainViewer() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [processing, setProcessing] = useState(false)
-  const [processStatus, setProcessStatus] = useState('')
   const [signalVer, setSignalVer] = useState<any>(null)
   const [signalHor, setSignalHor] = useState<any>(null)
   const [selVer, setSelVer] = useState('')
   const [selHor, setSelHor] = useState('')
 
-  // Read pending files from sessionStorage
-  const pendingRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingUploadFiles') : null
-  const pendingFiles: { path: string; type: string }[] = pendingRaw ? JSON.parse(pendingRaw) : []
-
-  const fetchData = useCallback(() => {
-    setLoading(true)
-    return vizApi.strains().then(setData).catch(() => setData(null)).finally(() => setLoading(false))
+  useEffect(() => {
+    vizApi.strains().then(setData).catch(() => setData(null)).finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
-
-  const handleProcess = async () => {
-    if (processing || pendingFiles.length === 0) return
-    setProcessing(true)
-    setProcessStatus('Starting pipeline...')
-    try {
-      const { task_id } = await pipelineApi.run(pendingFiles)
-      const pollStart = Date.now()
-      let done = false
-      while (Date.now() - pollStart < 300000) {
-        setProcessStatus(`Processing... (${Math.round((Date.now() - pollStart) / 1000)}s)`)
-        const st = await pipelineApi.status(task_id)
-        if (st.status === 'success') { done = true; break }
-        if (st.status === 'error') throw new Error(st.error || 'Pipeline failed')
-        await new Promise(r => setTimeout(r, 2000))
-      }
-      if (!done) throw new Error('Processing timed out after 5 minutes')
-      sessionStorage.removeItem('pendingUploadFiles')
-      setProcessStatus('Done! Loading results...')
-      await fetchData()
-    } catch (err: any) {
-      alert(err.message || 'Processing failed')
-    }
-    setProcessing(false)
-    setProcessStatus('')
-  }
-
-  // Fetch signal when a gauge is selected
   useEffect(() => {
     if (selVer) vizApi.signals(selVer, 'VER').then(setSignalVer).catch(() => setSignalVer(null))
   }, [selVer])
@@ -83,7 +47,6 @@ export default function StrainViewer() {
   const verGauges = allGauges.filter(g => g.group === 'VER')
   const horGauges = allGauges.filter(g => g.group === 'HOR')
   const hasData = allGauges.length > 0
-  const hasPending = pendingFiles.length > 0 && !hasData
 
   function GaugeTable({ gauges, title }: { gauges: GaugeRow[]; title: string }) {
     return (
@@ -144,30 +107,20 @@ export default function StrainViewer() {
           <h2 className="text-2xl font-bold text-primary">Signal Viewer</h2>
           <p className="text-gray-500 text-sm mt-1">Per-gauge strain values · Separate VER & HOR analysis</p>
         </div>
-        <div className="flex gap-2">
-          {(hasPending || processing) && (
-            <button onClick={handleProcess} disabled={processing}
-              className="btn-primary text-sm flex items-center gap-2">
-              {processing ? (
-                <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> {processStatus || 'Processing...'}</>
-              ) : `Process ${pendingFiles.length} File(s)`}
-            </button>
-          )}
-          {hasData && (
-            <button onClick={handleExport} className="btn-primary text-sm flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-2m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export as Excel
-            </button>
-          )}
-        </div>
+        {hasData && (
+          <button onClick={handleExport} className="btn-primary text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-2m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export as Excel
+          </button>
+        )}
       </div>
 
-      {!hasData && !hasPending && !processing && (
+      {!hasData && (
         <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
           <p className="text-sm">No data available</p>
-          <p className="text-xs mt-1">Upload VER/HOR files first, then process them here</p>
+          <p className="text-xs mt-1">Upload and process files from the Dashboard first</p>
         </div>
       )}
 
