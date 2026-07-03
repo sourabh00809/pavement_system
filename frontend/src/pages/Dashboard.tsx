@@ -13,6 +13,10 @@ export default function Dashboard() {
   const [uploadStatus, setUploadStatus] = useState<any>(null)
   const [processing, setProcessing] = useState(false)
 
+  // Read pending files from sessionStorage (set by Upload page)
+  const pendingRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingUploadFiles') : null
+  const pendingFiles: { path: string; type: string }[] = pendingRaw ? JSON.parse(pendingRaw) : []
+
   const fetchAll = useCallback((silent = false) => {
     if (!silent) setLoading(true)
     Promise.all([
@@ -28,10 +32,20 @@ export default function Dashboard() {
     }).finally(() => { if (!silent) setLoading(false) })
   }, [])
 
+  // Determine effective upload status: prefer sessionStorage, fall back to backend status
+  const effectiveUploadStatus = (() => {
+    if (pendingFiles.length > 0) {
+      const nVer = pendingFiles.filter(f => f.type === 'VER').length
+      const nHor = pendingFiles.filter(f => f.type === 'HOR').length
+      return { has_uploads: true, has_processed: false, files: pendingFiles, n_ver: nVer, n_hor: nHor }
+    }
+    return uploadStatus
+  })()
+
   useEffect(() => {
     const fetchStatus = () => {
       uploadPathsApi.status()
-        .then(setUploadStatus)
+        .then(s => setUploadStatus(s))
         .catch(() => setUploadStatus({ has_uploads: false, has_processed: false, files: [], n_ver: 0, n_hor: 0 }))
     }
     fetchAll()
@@ -44,10 +58,10 @@ export default function Dashboard() {
   }, [fetchAll])
 
   const handleProcess = async () => {
-    if (!uploadStatus?.has_uploads || processing) return
+    if (!effectiveUploadStatus?.has_uploads || processing) return
     setProcessing(true)
     try {
-      const files = uploadStatus.files || []
+      const files = effectiveUploadStatus.files || []
       const { task_id } = await pipelineApi.run(files)
       const pollStart = Date.now()
       let done = false
@@ -58,6 +72,7 @@ export default function Dashboard() {
         await new Promise(r => setTimeout(r, 2000))
       }
       if (!done) throw new Error('Processing timed out after 5 minutes')
+      sessionStorage.removeItem('pendingUploadFiles')
       fetchAll(true)
       setUploadStatus((prev: any) => ({ ...prev, has_processed: true }))
     } catch (err: any) {
@@ -66,14 +81,15 @@ export default function Dashboard() {
     setProcessing(false)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
+  // Show spinner only on first load when there's nothing to show yet
+  if (loading && !effectiveUploadStatus?.has_uploads) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
 
   const eventsVer = events?.events_ver || []
   const eventsHor = events?.events_hor || []
   const healthSummary = health?.summary || {}
   const hasData = strains?.per_gauge?.length > 0
-  const hasVer = uploadStatus?.n_ver > 0 || eventsVer.length > 0
-  const hasHor = uploadStatus?.n_hor > 0 || eventsHor.length > 0
+  const hasVer = effectiveUploadStatus?.n_ver > 0 || eventsVer.length > 0
+  const hasHor = effectiveUploadStatus?.n_hor > 0 || eventsHor.length > 0
 
   return (
     <div className="space-y-6">
@@ -82,12 +98,12 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold text-primary">Dashboard</h2>
           <p className="text-gray-500 text-sm mt-1">NH-71 Instrumented Pavement · IIT Tirupati</p>
         </div>
-        {uploadStatus?.has_uploads && !uploadStatus?.has_processed && (
+        {effectiveUploadStatus?.has_uploads && !effectiveUploadStatus?.has_processed && (
           <button onClick={handleProcess} disabled={processing}
             className="btn-primary text-sm flex items-center gap-2">
             {processing ? (
               <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Processing...</>
-            ) : `Process ${uploadStatus.n_ver || 0} VER + ${uploadStatus.n_hor || 0} HOR Files`}
+            ) : `Process ${effectiveUploadStatus.n_ver || 0} VER + ${effectiveUploadStatus.n_hor || 0} HOR Files`}
           </button>
         )}
       </div>

@@ -30,6 +30,7 @@ export default function Upload() {
       const results = await Promise.all(files.map(f => uploadApi(f.file)))
       const typedFiles = results.map((r, i) => ({ path: r.path, type: files[i].type }))
       await uploadPathsApi.save(typedFiles)
+      sessionStorage.setItem('pendingUploadFiles', JSON.stringify(typedFiles))
       setDone(true)
     } catch (err: any) {
       setError(err.response?.data?.detail || err.response?.data?.message || err.message)
