@@ -29,9 +29,16 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
+    const fetchStatus = () => {
+      uploadPathsApi.status()
+        .then(setUploadStatus)
+        .catch(() => setUploadStatus({ has_uploads: false, has_processed: false, files: [], n_ver: 0, n_hor: 0 }))
+    }
     fetchAll()
-    uploadPathsApi.status().then(setUploadStatus)
-    const handler = () => { if (!document.hidden) { fetchAll(true); uploadPathsApi.status().then(setUploadStatus) } }
+    fetchStatus()
+    const handler = () => {
+      if (!document.hidden) { fetchAll(true); fetchStatus() }
+    }
     document.addEventListener('visibilitychange', handler)
     return () => document.removeEventListener('visibilitychange', handler)
   }, [fetchAll])
