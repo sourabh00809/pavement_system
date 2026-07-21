@@ -3,35 +3,96 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: oklch(0.985 0.002 270);
+    --foreground: oklch(0.13 0.015 270);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.13 0.015 270);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.13 0.015 270);
+    --primary: oklch(0.25 0.018 270);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.96 0.005 270);
+    --secondary-foreground: oklch(0.25 0.018 270);
+    --muted: oklch(0.96 0.005 270);
+    --muted-foreground: oklch(0.55 0.01 270);
+    --accent: oklch(0.96 0.005 270);
+    --accent-foreground: oklch(0.25 0.018 270);
+    --border: oklch(0.91 0.005 270);
+    --input: oklch(0.91 0.005 270);
+    --ring: oklch(0.25 0.018 270);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0.002 270);
+    --sidebar-foreground: oklch(0.13 0.015 270);
+    --sidebar-primary: oklch(0.25 0.018 270);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.96 0.005 270);
+    --sidebar-accent-foreground: oklch(0.25 0.018 270);
+    --sidebar-border: oklch(0.91 0.005 270);
+    --sidebar-ring: oklch(0.55 0.01 270);
+  }
+
+  .dark {
+    --background: oklch(0.13 0.015 270);
+    --foreground: oklch(0.985 0.002 270);
+    --card: oklch(0.18 0.01 270);
+    --card-foreground: oklch(0.985 0.002 270);
+    --popover: oklch(0.18 0.01 270);
+    --popover-foreground: oklch(0.985 0.002 270);
+    --primary: oklch(0.985 0.002 270);
+    --primary-foreground: oklch(0.13 0.015 270);
+    --secondary: oklch(0.22 0.012 270);
+    --secondary-foreground: oklch(0.985 0.002 270);
+    --muted: oklch(0.22 0.012 270);
+    --muted-foreground: oklch(0.65 0.008 270);
+    --accent: oklch(0.22 0.012 270);
+    --accent-foreground: oklch(0.985 0.002 270);
+    --border: oklch(0.28 0.012 270);
+    --input: oklch(0.28 0.012 270);
+    --ring: oklch(0.65 0.008 270);
+    --sidebar: oklch(0.16 0.012 270);
+    --sidebar-foreground: oklch(0.985 0.002 270);
+    --sidebar-primary: oklch(0.985 0.002 270);
+    --sidebar-primary-foreground: oklch(0.13 0.015 270);
+    --sidebar-accent: oklch(0.22 0.012 270);
+    --sidebar-accent-foreground: oklch(0.985 0.002 270);
+    --sidebar-border: oklch(0.28 0.012 270);
+    --sidebar-ring: oklch(0.55 0.01 270);
+  }
+
+  * {
+    @apply border-border;
+  }
+
   body {
-    @apply antialiased;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+    @apply bg-card rounded-xl shadow-sm border border-border p-6;
   }
   .card-title {
-    @apply text-lg font-semibold text-primary mb-4;
+    @apply text-lg font-semibold text-foreground mb-4;
   }
   .btn-primary {
-    @apply bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50;
+    @apply bg-primary text-primary-foreground hover:opacity-90 px-5 py-2.5 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50;
   }
   .btn-secondary {
-    @apply bg-secondary hover:bg-secondary/90 text-white px-5 py-2.5 rounded-lg font-medium transition-colors duration-200;
+    @apply bg-secondary text-secondary-foreground hover:opacity-90 px-5 py-2.5 rounded-lg font-medium transition-colors duration-200;
   }
   .btn-accent {
-    @apply bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg font-medium transition-colors duration-200;
+    @apply bg-accent text-accent-foreground hover:opacity-90 px-5 py-2.5 rounded-lg font-medium transition-colors duration-200;
   }
   .input-field {
-    @apply w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary transition-colors;
+    @apply w-full px-4 py-2.5 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors;
   }
   .metric-value {
-    @apply text-3xl font-bold text-primary;
+    @apply text-3xl font-bold text-foreground;
   }
   .metric-label {
-    @apply text-sm text-gray-500 mt-1;
+    @apply text-sm text-muted-foreground mt-1;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;

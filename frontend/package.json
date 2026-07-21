@@ -9,18 +9,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.7.0",
+    "class-variance-authority": "^0.7.1",
+    "lucide-react": "^1.24.0",
+    "next-themes": "^0.4.6",
+    "plotly.js-dist-min": "^2.35.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-plotly.js": "^2.6.0",
     "react-router-dom": "^6.26.0",
     "recharts": "^2.12.0",
-    "axios": "^1.7.0",
-    "plotly.js-dist-min": "^2.35.0",
-    "react-plotly.js": "^2.6.0"
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
+    "@types/plotly.js": "^2.29.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/plotly.js": "^2.29.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
