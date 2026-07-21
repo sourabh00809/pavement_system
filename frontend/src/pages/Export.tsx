@@ -33,7 +33,7 @@ export default function ExportPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Export & Report</h2>
-        <p className="text-gray-500 text-sm mt-1">Download pipeline results and configuration</p>
+        <p className="text-muted-foreground text-sm mt-1">Download pipeline results and configuration</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
@@ -45,7 +45,7 @@ export default function ExportPage() {
               </svg>
               <div>
                 <h3 className="font-medium text-sm">{item.label}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
               </div>
             </div>
             <button
@@ -69,7 +69,7 @@ export default function ExportPage() {
         ))}
       </div>
 
-      <div className="card bg-blue-50 border-blue-100">
+      <div className="card bg-muted border-border">
         <h3 className="card-title text-sm text-primary">Pipeline Status</h3>
         <button onClick={async () => {
           try {

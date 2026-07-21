@@ -19,7 +19,7 @@ export default function MetricCard({ title, value, subtitle, color = 'primary', 
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-500 truncate">{title}</p>
+        <p className="text-sm text-muted-foreground truncate">{title}</p>
         <p className={`metric-value ${colorMap[color]}`}>{value}</p>
         {subtitle && <p className="metric-label">{subtitle}</p>}
         {trend && (

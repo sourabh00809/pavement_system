@@ -17,17 +17,17 @@ const navItems = [
 
 export default function Sidebar({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
-    <aside className={`${open ? 'w-60' : 'w-0'} bg-primary text-white transition-all duration-300 overflow-hidden flex flex-col flex-shrink-0`}>
-      <div className="p-4 border-b border-white/10">
+    <aside className={`${open ? 'w-60' : 'w-0'} bg-sidebar text-sidebar-foreground transition-all duration-300 overflow-hidden flex flex-col flex-shrink-0`}>
+      <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <svg className="w-8 h-8 text-accent" viewBox="0 0 64 64" fill="none">
+          <svg className="w-8 h-8 text-sidebar-ring" viewBox="0 0 64 64" fill="none">
             <path d="M16 48 L32 16 L48 48 Z" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" fill="none"/>
-            <path d="M24 38 L40 38" stroke="#4a90d9" strokeWidth="2.5" strokeLinecap="round"/>
-            <path d="M28 32 L36 32" stroke="#4a90d9" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M24 38 L40 38" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeOpacity="0.6"/>
+            <path d="M28 32 L36 32" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.6"/>
           </svg>
           <div>
             <p className="font-semibold text-sm">Pavement Analysis</p>
-            <p className="text-xs text-white/50">IIT Tirupati</p>
+            <p className="text-xs text-sidebar-foreground/50">IIT Tirupati</p>
           </div>
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function Sidebar({ open, onToggle }: { open: boolean; onToggle: (
             end={item.path === '/'}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                isActive ? 'bg-white/15 text-accent border-r-2 border-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground border-r-2 border-sidebar-ring' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
               }`
             }
           >
@@ -50,7 +50,7 @@ export default function Sidebar({ open, onToggle }: { open: boolean; onToggle: (
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 border-t border-white/10 text-xs text-white/40">
+      <div className="p-4 border-t border-sidebar-border text-xs text-sidebar-foreground/40">
         v2.0 · NH-71 · IRC:37-2018
       </div>
     </aside>

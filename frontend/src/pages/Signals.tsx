@@ -33,15 +33,15 @@ export default function Signals() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Signal Processing</h2>
-        <p className="text-gray-500 text-sm mt-1">Bandpass filter (0.5–30 Hz) · Baseline correction</p>
+        <p className="text-muted-foreground text-sm mt-1">Bandpass filter (0.5–30 Hz) · Baseline correction</p>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          <button onClick={() => setMode('all')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${mode === 'all' ? 'bg-white shadow text-primary font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
+        <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+          <button onClick={() => setMode('all')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${mode === 'all' ? 'bg-background shadow text-primary font-medium' : 'text-muted-foreground hover:text-muted-foreground'}`}>
             All Gauges
           </button>
-          <button onClick={() => setMode('single')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${mode === 'single' ? 'bg-white shadow text-primary font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button onClick={() => setMode('single')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${mode === 'single' ? 'bg-background shadow text-primary font-medium' : 'text-muted-foreground hover:text-muted-foreground'}`}>
             Single Gauge
           </button>
         </div>
@@ -51,7 +51,7 @@ export default function Signals() {
           </select>
         )}
         {mode === 'all' && allData && (
-          <span className="text-xs text-gray-400">{allData.n_horizontal} horizontal · {allData.n_vertical} vertical · {allData.n_gauges} total · {allData.total_duration_s?.toFixed(1)}s duration</span>
+          <span className="text-xs text-muted-foreground">{allData.n_horizontal} horizontal · {allData.n_vertical} vertical · {allData.n_gauges} total · {allData.total_duration_s?.toFixed(1)}s duration</span>
         )}
       </div>
 
@@ -60,7 +60,7 @@ export default function Signals() {
           {allData?.has_vertical && allData?.plot_json_ver ? (
             <InteractivePlot plotJson={allData.plot_json_ver} title="Vertical Strain Channels" />
           ) : (
-            <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
+            <div className="card text-muted-foreground text-center py-12 border-dashed border-2 border-border">
               <p className="text-sm">No vertical strain data available</p>
               <p className="text-xs mt-1">Upload a VER file to see vertical channels</p>
             </div>
@@ -68,7 +68,7 @@ export default function Signals() {
           {allData?.has_horizontal && allData?.plot_json_hor ? (
             <InteractivePlot plotJson={allData.plot_json_hor} title="Horizontal Strain Channels" />
           ) : (
-            <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
+            <div className="card text-muted-foreground text-center py-12 border-dashed border-2 border-border">
               <p className="text-sm">No horizontal strain data available</p>
               <p className="text-xs mt-1">Upload a HOR file to see horizontal channels</p>
             </div>
@@ -85,18 +85,18 @@ export default function Signals() {
           <div className="card">
             <h3 className="card-title">Signal Statistics</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div><span className="text-gray-500">Gauge:</span> <span className="font-medium">{singleData.gauge}</span></div>
-              <div><span className="text-gray-500">Raw mean:</span> <span className="font-medium">{singleData.raw?.reduce((a: number,b: number) => a + Math.abs(b), 0) / (singleData.raw?.length || 1) | 0} µε</span></div>
-              <div><span className="text-gray-500">Filtered mean:</span> <span className="font-medium">{singleData.filtered?.reduce((a: number,b: number) => a + Math.abs(b), 0) / (singleData.filtered?.length || 1) | 0} µε</span></div>
-              <div><span className="text-gray-500">Filter:</span> <span className="font-medium">0.5–30 Hz Bandpass</span></div>
+              <div><span className="text-muted-foreground">Gauge:</span> <span className="font-medium">{singleData.gauge}</span></div>
+              <div><span className="text-muted-foreground">Raw mean:</span> <span className="font-medium">{singleData.raw?.reduce((a: number,b: number) => a + Math.abs(b), 0) / (singleData.raw?.length || 1) | 0} µε</span></div>
+              <div><span className="text-muted-foreground">Filtered mean:</span> <span className="font-medium">{singleData.filtered?.reduce((a: number,b: number) => a + Math.abs(b), 0) / (singleData.filtered?.length || 1) | 0} µε</span></div>
+              <div><span className="text-muted-foreground">Filter:</span> <span className="font-medium">0.5–30 Hz Bandpass</span></div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="card bg-blue-50 border-blue-100">
+      <div className="card bg-muted border-border">
         <h3 className="card-title text-sm text-primary">About the Filter</h3>
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-muted-foreground">
           The 0.5–30 Hz bandpass filter preserves axle event waveforms (dominant frequency 12–25 Hz at highway speed)
           while removing drift, DC offset, and high-frequency noise.
         </p>

@@ -58,22 +58,22 @@ export default function StrainViewer() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Gauge</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Peak Strain (µε)</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Vehicles</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Vehicle IDs</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Health</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Status</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Gauge</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Peak Strain (µε)</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Vehicles</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Vehicle IDs</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Health</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {gauges.map((g, i) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={i} className="border-b border-border hover:bg-muted">
                     <td className="py-2 px-3 font-medium">{g.gauge}</td>
                     <td className="py-2 px-3 font-mono">{g.peak_strain_microstrain.toFixed(1)}</td>
                     <td className="py-2 px-3 font-mono">{g.n_vehicles}</td>
-                    <td className="py-2 px-3 text-xs text-gray-500 max-w-[200px] truncate">{g.vehicle_ids?.join(', ') || '—'}</td>
+                    <td className="py-2 px-3 text-xs text-muted-foreground max-w-[200px] truncate">{g.vehicle_ids?.join(', ') || '—'}</td>
                     <td className="py-2 px-3">
                       <div className="flex items-center gap-2">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full">
@@ -94,7 +94,7 @@ export default function StrainViewer() {
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8 text-sm">No gauge data available</p>
+          <p className="text-muted-foreground text-center py-8 text-sm">No gauge data available</p>
         )}
       </div>
     )
@@ -105,7 +105,7 @@ export default function StrainViewer() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-primary">Signal Viewer</h2>
-          <p className="text-gray-500 text-sm mt-1">Per-gauge strain values · Separate VER & HOR analysis</p>
+          <p className="text-muted-foreground text-sm mt-1">Per-gauge strain values · Separate VER & HOR analysis</p>
         </div>
         {hasData && (
           <button onClick={handleExport} className="btn-primary text-sm flex items-center gap-2">
@@ -118,7 +118,7 @@ export default function StrainViewer() {
       </div>
 
       {!hasData && (
-        <div className="card text-gray-400 text-center py-12 border-dashed border-2 border-gray-200">
+        <div className="card text-muted-foreground text-center py-12 border-dashed border-2 border-border">
           <p className="text-sm">No data available</p>
           <p className="text-xs mt-1">Upload and process files from the Dashboard first</p>
         </div>
@@ -148,13 +148,13 @@ export default function StrainViewer() {
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="card-title mb-0">VER Signal</h3>
                   <select value={selVer} onChange={e => setSelVer(e.target.value)}
-                    className="text-xs border border-gray-200 rounded px-2 py-1 ml-auto">
+                    className="text-xs border border-border rounded px-2 py-1 ml-auto">
                     <option value="">Select gauge...</option>
                     {verGauges.map(g => <option key={g.gauge} value={g.gauge}>{g.gauge}</option>)}
                   </select>
                 </div>
                 {signalVer?.plot_json ? <InteractivePlot plotJson={signalVer.plot_json} title="" />
-                  : <p className="text-gray-400 text-center py-8 text-sm">Select a gauge to view signal</p>}
+                  : <p className="text-muted-foreground text-center py-8 text-sm">Select a gauge to view signal</p>}
               </div>
             )}
             {horGauges.length > 0 && (
@@ -162,13 +162,13 @@ export default function StrainViewer() {
                 <div className="flex items-center gap-3 mb-3">
                   <h3 className="card-title mb-0">HOR Signal</h3>
                   <select value={selHor} onChange={e => setSelHor(e.target.value)}
-                    className="text-xs border border-gray-200 rounded px-2 py-1 ml-auto">
+                    className="text-xs border border-border rounded px-2 py-1 ml-auto">
                     <option value="">Select gauge...</option>
                     {horGauges.map(g => <option key={g.gauge} value={g.gauge}>{g.gauge}</option>)}
                   </select>
                 </div>
                 {signalHor?.plot_json ? <InteractivePlot plotJson={signalHor.plot_json} title="" />
-                  : <p className="text-gray-400 text-center py-8 text-sm">Select a gauge to view signal</p>}
+                  : <p className="text-muted-foreground text-center py-8 text-sm">Select a gauge to view signal</p>}
               </div>
             )}
           </div>

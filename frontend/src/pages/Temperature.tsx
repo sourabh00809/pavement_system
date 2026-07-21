@@ -60,9 +60,9 @@ export default function Temperature() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-primary">Temperature Monitoring</h2>
-          <p className="text-gray-500 text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
+          <p className="text-muted-foreground text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
         </div>
-        <div className="card text-gray-400 text-center py-16 border-dashed border-2 border-gray-200">
+        <div className="card text-muted-foreground text-center py-16 border-dashed border-2 border-border">
           <p className="text-sm">No temperature data available</p>
           <p className="text-xs mt-1">Temperature channels (CH10, CH11) are only present in HOR files</p>
         </div>
@@ -74,9 +74,9 @@ export default function Temperature() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Temperature Monitoring</h2>
-        <p className="text-gray-500 text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
+        <p className="text-muted-foreground text-sm mt-1">In-pavement temperature channels · Calibration offset controls</p>
         {raw?.total_duration_s && (
-          <p className="text-xs text-gray-400 mt-1">Full duration: {raw.total_duration_s.toFixed(1)}s · Drag the slider at the bottom to scroll</p>
+          <p className="text-xs text-muted-foreground mt-1">Full duration: {raw.total_duration_s.toFixed(1)}s · Drag the slider at the bottom to scroll</p>
         )}
       </div>
 
@@ -102,15 +102,15 @@ export default function Temperature() {
         <div className="card">
           <h3 className="card-title">CH10 Calibration</h3>
           <div className="mb-4">
-            <label className="block text-xs text-gray-500 mb-1">Offset (°C): <span className="font-mono font-bold text-accent">{offset10 >= 0 ? `+${offset10}` : offset10}</span></label>
+            <label className="block text-xs text-muted-foreground mb-1">Offset (°C): <span className="font-mono font-bold text-accent">{offset10 >= 0 ? `+${offset10}` : offset10}</span></label>
             <input type="range" min={-50} max={50} value={offset10} onChange={e => setOffset10(Number(e.target.value))}
               className="w-full accent-accent" />
           </div>
           {stats.CH10 && (
             <div className="grid grid-cols-3 gap-3 text-sm">
-              <div><span className="text-gray-500">Mean:</span> <span className="font-medium">{(stats.CH10.mean + offset10).toFixed(1)} °C</span></div>
-              <div><span className="text-gray-500">Min:</span> <span className="font-medium">{(stats.CH10.min + offset10).toFixed(1)} °C</span></div>
-              <div><span className="text-gray-500">Max:</span> <span className="font-medium">{(stats.CH10.max + offset10).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Mean:</span> <span className="font-medium">{(stats.CH10.mean + offset10).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Min:</span> <span className="font-medium">{(stats.CH10.min + offset10).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Max:</span> <span className="font-medium">{(stats.CH10.max + offset10).toFixed(1)} °C</span></div>
             </div>
           )}
         </div>
@@ -118,23 +118,23 @@ export default function Temperature() {
         <div className="card">
           <h3 className="card-title">CH11 Calibration</h3>
           <div className="mb-4">
-            <label className="block text-xs text-gray-500 mb-1">Offset (°C): <span className="font-mono font-bold text-primary">{offset11 >= 0 ? `+${offset11}` : offset11}</span></label>
+            <label className="block text-xs text-muted-foreground mb-1">Offset (°C): <span className="font-mono font-bold text-primary">{offset11 >= 0 ? `+${offset11}` : offset11}</span></label>
             <input type="range" min={-50} max={50} value={offset11} onChange={e => setOffset11(Number(e.target.value))}
               className="w-full accent-primary" />
           </div>
           {stats.CH11 && (
             <div className="grid grid-cols-3 gap-3 text-sm">
-              <div><span className="text-gray-500">Mean:</span> <span className="font-medium">{(stats.CH11.mean + offset11).toFixed(1)} °C</span></div>
-              <div><span className="text-gray-500">Min:</span> <span className="font-medium">{(stats.CH11.min + offset11).toFixed(1)} °C</span></div>
-              <div><span className="text-gray-500">Max:</span> <span className="font-medium">{(stats.CH11.max + offset11).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Mean:</span> <span className="font-medium">{(stats.CH11.mean + offset11).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Min:</span> <span className="font-medium">{(stats.CH11.min + offset11).toFixed(1)} °C</span></div>
+              <div><span className="text-muted-foreground">Max:</span> <span className="font-medium">{(stats.CH11.max + offset11).toFixed(1)} °C</span></div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="card bg-blue-50 border-blue-100">
+      <div className="card bg-muted border-border">
         <h3 className="card-title text-sm text-primary">About Temperature Calibration</h3>
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-muted-foreground">
           CH10 and CH11 are thermocouple channels embedded in the pavement. Raw readings may require
           a constant offset correction based on field calibration. Adjust the sliders above to apply
           an additive offset — the chart and statistics update instantly without a server request.

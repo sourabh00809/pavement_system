@@ -7,7 +7,7 @@ export default function InteractivePlot({ plotJson, title }: { plotJson?: string
   try {
     figure = JSON.parse(plotJson)
   } catch {
-    return <div className="card text-gray-400 text-center py-8">Failed to load plot</div>
+    return <div className="card text-muted-foreground text-center py-8">Failed to load plot</div>
   }
 
   return (

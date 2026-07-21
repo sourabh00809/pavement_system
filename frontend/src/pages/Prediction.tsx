@@ -75,9 +75,9 @@ export default function Prediction() {
     if (!redesign?.recommended) return null
     const rec = redesign.recommended
     return (
-      <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-        <h4 className="font-semibold text-sm text-green-800 mb-2">Recommended Redesign</h4>
-        <div className="text-xs text-green-700 space-y-1">
+      <div className="mt-4 p-4 bg-muted rounded-lg border border-border">
+        <h4 className="font-semibold text-sm text-foreground mb-2">Recommended Redesign</h4>
+        <div className="text-xs text-muted-foreground space-y-1">
           <p>Wearing course: <strong>{rec.wearing_course_mm} mm</strong></p>
           <p>Binder course: <strong>{rec.binder_course_mm} mm</strong></p>
           <p>Granular layer: <strong>{rec.granular_layer_mm} mm</strong></p>
@@ -85,7 +85,7 @@ export default function Prediction() {
           <p>Added thickness: <strong>{rec.added_thickness_mm} mm</strong></p>
           <p>Redesigned Nf: <strong>{rec.Nf ? rec.Nf.toExponential(2) : '—'}</strong></p>
           <p>Redesigned Nr: <strong>{rec.Nr ? rec.Nr.toExponential(2) : '—'}</strong></p>
-          <p className={`font-semibold ${rec.design_adequate ? 'text-green-700' : 'text-red-600'}`}>
+          <p className={`font-semibold ${rec.design_adequate ? 'text-muted-foreground' : 'text-red-600'}`}>
             Design adequate: {rec.design_adequate ? 'Yes' : 'No'}
           </p>
         </div>
@@ -103,7 +103,7 @@ export default function Prediction() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-primary">Life Prediction</h2>
-          <p className="text-gray-500 text-sm mt-1">IRC:37-2018 · Monte Carlo Uncertainty · Redesign Recommendations</p>
+          <p className="text-muted-foreground text-sm mt-1">IRC:37-2018 · Monte Carlo Uncertainty · Redesign Recommendations</p>
         </div>
         <Link to="/design" className="text-xs text-secondary hover:text-primary underline">Edit Design Params</Link>
       </div>
@@ -124,10 +124,10 @@ export default function Prediction() {
         <div className="card">
           <h3 className="card-title">Monte Carlo Uncertainty (90% CI)</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div><span className="text-gray-500">Nf p5:</span> <span className="font-medium">{unc.Nf_p5?.toExponential(2)}</span></div>
-            <div><span className="text-gray-500">Nf p95:</span> <span className="font-medium">{unc.Nf_p95?.toExponential(2)}</span></div>
-            <div><span className="text-gray-500">Nr p5:</span> <span className="font-medium">{unc.Nr_p5?.toExponential(2)}</span></div>
-            <div><span className="text-gray-500">Nr p95:</span> <span className="font-medium">{unc.Nr_p95?.toExponential(2)}</span></div>
+            <div><span className="text-muted-foreground">Nf p5:</span> <span className="font-medium">{unc.Nf_p5?.toExponential(2)}</span></div>
+            <div><span className="text-muted-foreground">Nf p95:</span> <span className="font-medium">{unc.Nf_p95?.toExponential(2)}</span></div>
+            <div><span className="text-muted-foreground">Nr p5:</span> <span className="font-medium">{unc.Nr_p5?.toExponential(2)}</span></div>
+            <div><span className="text-muted-foreground">Nr p95:</span> <span className="font-medium">{unc.Nr_p95?.toExponential(2)}</span></div>
           </div>
         </div>
       )}
@@ -137,7 +137,7 @@ export default function Prediction() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
           <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">Pavement Layers</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Pavement Layers</h4>
             <div className="space-y-2">
               {layers.map((layer, i) => (
                 <div key={i} className="flex gap-2 items-end">
@@ -149,7 +149,7 @@ export default function Prediction() {
                     <input type="number" value={layer['Thickness (mm)']} onChange={e => updateLayer(i, 'Thickness (mm)', e.target.value)}
                       className="input-field text-xs" min={0} />
                   </div>
-                  <button onClick={() => removeLayer(i)} className="p-1 text-gray-400 hover:text-danger transition-colors">
+                  <button onClick={() => removeLayer(i)} className="p-1 text-muted-foreground hover:text-danger transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -161,71 +161,71 @@ export default function Prediction() {
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">Traffic Parameters</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Traffic Parameters</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500">A — CVPD</label>
+                <label className="block text-xs text-muted-foreground">A — CVPD</label>
                 <input type="number" value={A} onChange={e => setA(Number(e.target.value))} className="input-field text-xs" min={1} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500">D — Lane dist.</label>
+                <label className="block text-xs text-muted-foreground">D — Lane dist.</label>
                 <input type="number" step={0.05} value={D} onChange={e => setD(Number(e.target.value))} className="input-field text-xs" min={0} max={1} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500">F — VDF</label>
+                <label className="block text-xs text-muted-foreground">F — VDF</label>
                 <input type="number" step={0.5} value={F} onChange={e => setF(Number(e.target.value))} className="input-field text-xs" min={1} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500">r — Growth</label>
+                <label className="block text-xs text-muted-foreground">r — Growth</label>
                 <input type="number" step={0.01} value={r} onChange={e => setR(Number(e.target.value))} className="input-field text-xs" min={0} max={1} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500">n — Period (yr)</label>
+                <label className="block text-xs text-muted-foreground">n — Period (yr)</label>
                 <input type="number" value={n} onChange={e => setN(Number(e.target.value))} className="input-field text-xs" min={1} max={50} />
               </div>
               <div>
-                <label className="block text-xs text-gray-500">E — Modulus (MPa)</label>
+                <label className="block text-xs text-muted-foreground">E — Modulus (MPa)</label>
                 <input type="number" value={eMod} onChange={e => setEMod(Number(e.target.value))} className="input-field text-xs" min={100} />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-4 mb-4">
-          <h4 className="text-xs font-semibold text-gray-600 mb-2">Material Parameters</h4>
+        <div className="border-t border-border pt-4 mb-4">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2">Material Parameters</h4>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div>
-              <label className="block text-xs text-gray-500">K1 (fatigue)</label>
+              <label className="block text-xs text-muted-foreground">K1 (fatigue)</label>
               <input type="number" step="1e15" value={K1} onChange={e => setK1(Number(e.target.value))} className="input-field text-xs" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">K2 (εt exponent)</label>
+              <label className="block text-xs text-muted-foreground">K2 (εt exponent)</label>
               <input type="number" step={0.01} value={K2} onChange={e => setK2(Number(e.target.value))} className="input-field text-xs" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">K3 (E exponent)</label>
+              <label className="block text-xs text-muted-foreground">K3 (E exponent)</label>
               <input type="number" step={0.01} value={K3} onChange={e => setK3(Number(e.target.value))} className="input-field text-xs" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">K4 (rutting)</label>
+              <label className="block text-xs text-muted-foreground">K4 (rutting)</label>
               <input type="number" step="1e-7" value={K4} onChange={e => setK4(Number(e.target.value))} className="input-field text-xs" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500">K5 (εv exponent)</label>
+              <label className="block text-xs text-muted-foreground">K5 (εv exponent)</label>
               <input type="number" step={0.1} value={K5} onChange={e => setK5(Number(e.target.value))} className="input-field text-xs" />
             </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-4">
-          <h4 className="text-xs font-semibold text-gray-600 mb-2">Strain Inputs</h4>
+        <div className="border-t border-border pt-4">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2">Strain Inputs</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">εt (µε) — Horizontal tensile</label>
+              <label className="block text-xs text-muted-foreground mb-1">εt (µε) — Horizontal tensile</label>
               <input type="number" value={epsT} onChange={e => setEpsT(Number(e.target.value))} className="input-field" min={1} />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">εv (µε) — Vertical compressive</label>
+              <label className="block text-xs text-muted-foreground mb-1">εv (µε) — Vertical compressive</label>
               <input type="number" value={epsV} onChange={e => setEpsV(Number(e.target.value))} className="input-field" min={1} />
             </div>
           </div>
@@ -236,20 +236,20 @@ export default function Prediction() {
 
         {customResult && !customResult.error && (
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm p-4 bg-gray-50 rounded-lg">
-              <div><span className="text-gray-500">Nf:</span> <span className="font-medium">{customResult.Nf}</span></div>
-              <div><span className="text-gray-500">Nr:</span> <span className="font-medium">{customResult.Nr}</span></div>
-              <div><span className="text-gray-500">Nd:</span> <span className="font-medium">{customResult.Nd}</span></div>
-              <div><span className="text-gray-500">Adequate:</span> <span className={`font-medium ${customResult.design_adequate ? 'text-green-600' : 'text-red-600'}`}>{customResult.design_adequate ? 'Yes' : 'No'}</span></div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm p-4 bg-muted rounded-lg">
+              <div><span className="text-muted-foreground">Nf:</span> <span className="font-medium">{customResult.Nf}</span></div>
+              <div><span className="text-muted-foreground">Nr:</span> <span className="font-medium">{customResult.Nr}</span></div>
+              <div><span className="text-muted-foreground">Nd:</span> <span className="font-medium">{customResult.Nd}</span></div>
+              <div><span className="text-muted-foreground">Adequate:</span> <span className={`font-medium ${customResult.design_adequate ? 'text-green-600' : 'text-red-600'}`}>{customResult.design_adequate ? 'Yes' : 'No'}</span></div>
             </div>
             {customResult.uncertainty && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-xs font-semibold text-gray-700 mb-2">Monte Carlo Uncertainty (90% CI)</h4>
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2">Monte Carlo Uncertainty (90% CI)</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div><span className="text-gray-500">Nf p5:</span> <span className="font-medium">{customResult.uncertainty.Nf_p5?.toExponential(2)}</span></div>
-                  <div><span className="text-gray-500">Nf p95:</span> <span className="font-medium">{customResult.uncertainty.Nf_p95?.toExponential(2)}</span></div>
-                  <div><span className="text-gray-500">Nr p5:</span> <span className="font-medium">{customResult.uncertainty.Nr_p5?.toExponential(2)}</span></div>
-                  <div><span className="text-gray-500">Nr p95:</span> <span className="font-medium">{customResult.uncertainty.Nr_p95?.toExponential(2)}</span></div>
+                  <div><span className="text-muted-foreground">Nf p5:</span> <span className="font-medium">{customResult.uncertainty.Nf_p5?.toExponential(2)}</span></div>
+                  <div><span className="text-muted-foreground">Nf p95:</span> <span className="font-medium">{customResult.uncertainty.Nf_p95?.toExponential(2)}</span></div>
+                  <div><span className="text-muted-foreground">Nr p5:</span> <span className="font-medium">{customResult.uncertainty.Nr_p5?.toExponential(2)}</span></div>
+                  <div><span className="text-muted-foreground">Nr p95:</span> <span className="font-medium">{customResult.uncertainty.Nr_p95?.toExponential(2)}</span></div>
                 </div>
               </div>
             )}

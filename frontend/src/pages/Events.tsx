@@ -36,7 +36,7 @@ export default function Events() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-primary">Vehicle Event Detection</h2>
-          <p className="text-gray-500 text-sm mt-1">Separate processing for VER and HOR strain types</p>
+          <p className="text-muted-foreground text-sm mt-1">Separate processing for VER and HOR strain types</p>
         </div>
         {totalEvents > 0 && (
           <button onClick={handleExport} className="btn-primary text-sm flex items-center gap-2">
@@ -60,10 +60,10 @@ export default function Events() {
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="card-title mb-0">Detected Events</h3>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+          <div className="flex gap-1 bg-muted rounded-lg p-0.5">
             {(['all', 'VER', 'HOR'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 text-xs rounded-md transition-colors ${activeTab === tab ? 'bg-white shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`px-3 py-1 text-xs rounded-md transition-colors ${activeTab === tab ? 'bg-background shadow-sm font-medium' : 'text-muted-foreground hover:text-muted-foreground'}`}>
                 {tab === 'all' ? 'All' : tab}
               </button>
             ))}
@@ -73,18 +73,18 @@ export default function Events() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Vehicle ID</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Gauge</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Group</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Axles</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Max Strain</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Duration</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Vehicle ID</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Gauge</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Group</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Axles</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Max Strain</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Duration</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleEvents.slice(0, 100).map((e: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={i} className="border-b border-border hover:bg-muted">
                     <td className="py-2 px-3 font-medium">{e.vehicle_id}</td>
                     <td className="py-2 px-3">{e.gauge_id}</td>
                     <td className="py-2 px-3">
@@ -101,7 +101,7 @@ export default function Events() {
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8">No events detected</p>
+          <p className="text-muted-foreground text-center py-8">No events detected</p>
         )}
       </div>
     </div>

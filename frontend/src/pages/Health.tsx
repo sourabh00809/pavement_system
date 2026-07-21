@@ -31,7 +31,7 @@ export default function Health() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Sensor Health Monitor</h2>
-        <p className="text-gray-500 text-sm mt-1">Dead/saturated gauge detection · Health score 0–1</p>
+        <p className="text-muted-foreground text-sm mt-1">Dead/saturated gauge detection · Health score 0–1</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -55,13 +55,13 @@ export default function Health() {
             </div>
             <div className="flex items-baseline gap-1 mb-2">
               <span className="text-2xl font-bold text-primary">{(g.health_score * 100).toFixed(0)}</span>
-              <span className="text-sm text-gray-400">/100</span>
+              <span className="text-sm text-muted-foreground">/100</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
+            <div className="w-full bg-muted rounded-full h-1.5">
               <div className={`h-1.5 rounded-full ${g.excluded ? 'bg-red-500' : g.health_score > 0.7 ? 'bg-green-500' : 'bg-amber-500'}`}
                 style={{ width: `${g.health_score * 100}%` }}></div>
             </div>
-            <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+            <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
               <p>σ = {g.std_dev.toFixed(2)} µε</p>
               <p>μ = {g.mean_offset.toFixed(2)} µε</p>
             </div>

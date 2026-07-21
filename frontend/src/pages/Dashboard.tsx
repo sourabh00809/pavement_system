@@ -96,7 +96,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-primary">Dashboard</h2>
-          <p className="text-gray-500 text-sm mt-1">NH-71 Instrumented Pavement · IIT Tirupati</p>
+          <p className="text-muted-foreground text-sm mt-1">NH-71 Instrumented Pavement · IIT Tirupati</p>
         </div>
         {effectiveUploadStatus?.has_uploads && !effectiveUploadStatus?.has_processed && (
           <button onClick={handleProcess} disabled={processing}
@@ -131,7 +131,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {life?.plot_json_ver && <InteractivePlot plotJson={life.plot_json_ver} title="VER — Pavement Life" />}
         {life?.plot_json_hor && <InteractivePlot plotJson={life.plot_json_hor} title="HOR — Pavement Life" />}
-        {!life?.plot_json_ver && !life?.plot_json_hor && <div className="card text-gray-400 text-center py-8 border-dashed border-2 border-gray-200">
+        {!life?.plot_json_ver && !life?.plot_json_hor && <div className="card text-muted-foreground text-center py-8 border-dashed border-2 border-border">
           <p className="text-sm">No life prediction data</p>
           <p className="text-xs mt-1">Upload and process data first</p>
         </div>}
@@ -141,16 +141,16 @@ export default function Dashboard() {
       <div className="card">
         <h3 className="card-title">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <a href="/upload" className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-primary hover:bg-blue-100 transition-colors">
+          <a href="/upload" className="flex items-center gap-2 p-3 rounded-lg bg-muted text-primary hover:bg-secondary transition-colors">
             <span className="text-sm font-medium">Upload Data</span>
           </a>
-          <a href="/strains" className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-primary hover:bg-blue-100 transition-colors">
+          <a href="/strains" className="flex items-center gap-2 p-3 rounded-lg bg-muted text-primary hover:bg-secondary transition-colors">
             <span className="text-sm font-medium">View Strains</span>
           </a>
-          <a href="/events" className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-primary hover:bg-blue-100 transition-colors">
+          <a href="/events" className="flex items-center gap-2 p-3 rounded-lg bg-muted text-primary hover:bg-secondary transition-colors">
             <span className="text-sm font-medium">Events</span>
           </a>
-          <a href="/docs" className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-primary hover:bg-blue-100 transition-colors">
+          <a href="/docs" className="flex items-center gap-2 p-3 rounded-lg bg-muted text-primary hover:bg-secondary transition-colors">
             <span className="text-sm font-medium">Documentation</span>
           </a>
         </div>

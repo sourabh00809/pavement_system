@@ -17,7 +17,7 @@ export default function Sync() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-primary">Multi-Gauge Synchronization</h2>
-        <p className="text-gray-500 text-sm mt-1">Cross-correlation · DTW alignment · DBSCAN temporal clustering</p>
+        <p className="text-muted-foreground text-sm mt-1">Cross-correlation · DTW alignment · DBSCAN temporal clustering</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -34,17 +34,17 @@ export default function Sync() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Bundle ID</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Time (s)</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Axles</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Gauges</th>
-                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Confidence</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Bundle ID</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Time (s)</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Axles</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Gauges</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Confidence</th>
                 </tr>
               </thead>
               <tbody>
                 {data.bundles.slice(0, 20).map((b: any, i: number) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={i} className="border-b border-border hover:bg-muted">
                     <td className="py-2 px-3 font-medium">{b.bundle_id}</td>
                     <td className="py-2 px-3">{b.representative_time?.toFixed(2)}</td>
                     <td className="py-2 px-3">{b.axle_count}</td>
@@ -60,7 +60,7 @@ export default function Sync() {
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8">No synchronized bundles found</p>
+          <p className="text-muted-foreground text-center py-8">No synchronized bundles found</p>
         )}
       </div>
     </div>
